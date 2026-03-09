@@ -1,7 +1,7 @@
 from pydantic import BaseModel
 from datetime import date
 
-class DoacaoCreate(BaseModel):
+class CheckpointCreate(BaseModel):
     tipo: str
     data: date
-    local: str
+    menu: str

@@ -2,7 +2,7 @@
 <html lang="pt-br">
 <head>
     <meta charset="UTF-8">
-    <title>REDBoard</title>
+    <title>Jyclo App</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
     <!-- CSS LOCAL -->
@@ -20,12 +20,12 @@
 
 <body>
 
-<h1>Meu Redboard</h1>
+<h1>Jyclo App - tracking your fasting cycles </h1>
 
 <div class="summary">
     <p>mês:    {{ total_mes }}</p>
     <p>ano:    {{ total_ano }}</p>
-    <p>total:  {{ total_doacoes }}</p>
+    <p>total:  {{ total_checkpoints }}</p>
     <div class="filter">
         <button id="abrirModal" class="btn-add">
             <i class="bi bi-plus-lg"></i>
@@ -34,15 +34,15 @@
 </div>
 
 <div class="cards-container">
-    {% for doacao in doacoes %}
-        <div class="card {{ doacao.tipo }}">
+    {% for checkpoint in checkpoints %}
+        <div class="card {{ checkpoint.tipo }}">
 
             <h2 class="card-title">
-                {{ doacao.tipo|capitalize }} - {{ doacao.data.strftime('%d/%m/%Y') }}
+                {{ checkpoint.tipo|capitalize }} - {{ checkpoint.data.strftime('%d/%m/%Y') }}
             </h2>
 
             <div class="ensaios">
-                <p><strong>{{ doacao.local }}</strong></p>
+                <p><strong>{{ checkpoint.menu }}</strong></p>
             </div>
 
         </div>
@@ -50,22 +50,22 @@
 </div>
 
 <!-- MODAL -->
-<div id="modalDoacao" class="modal">
+<div id="modalCheckpoint" class="modal">
     <div class="modal-content">
-        <form method="post" action="/nova-doacao">
+        <form method="post" action="/novo_checkpoint">
 
             <label>Tipo</label>
             <select name="tipo" required>
-                <option value="sangue">Sangue</option>
-                <option value="plaqueta">Plaqueta</option>
-                <option value="plasma">Plasma</option>
+                <option value="refeicao">Refeição</option>
+                <option value="lanche">Lanche</option>
+                <option value="guloseimas">Guloseimas</option>
             </select>
 
             <label>Data</label>
             <input type="date" name="data" required>
 
-            <label>Local</label>
-            <input type="text" name="local">
+            <label>Menu</label>
+            <input type="text" name="menu">
 
             <br><br>
             <button type="submit">Salvar</button>

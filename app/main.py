@@ -5,7 +5,7 @@ from sqlalchemy.orm import Session
 from sqlalchemy import extract
 from datetime import date
 from .database import SessionLocal, engine
-from .models import Base, Doacao
+from .models import Base, Checkpoint
 from fastapi.templating import Jinja2Templates
 from datetime import date
 
@@ -26,55 +26,46 @@ def get_db():
         db.close()
 
 
-"""trocando a rota / 
-para que ela monte dados para os 3 contadores (tot, mes e ano)
-
-@app.get("/", response_class=HTMLResponse)
-def index(request: Request, db: Session = Depends(get_db)):
-    doacoes = db.query(Doacao).order_by(Doacao.data.desc()).all()
-    total = len(doacoes)
-    return templates.TemplateResponse("index.html", {
-        "request": request,
-        "doacoes": doacoes,
-        "total_doacoes": total
-    })
-"""
 
 @app.get("/", response_class=HTMLResponse)
 def index(request: Request, db: Session = Depends(get_db)):
     hoje = date.today()
 
-    # Todas as doações
-    doacoes = db.query(Doacao).order_by(Doacao.data.desc()).all()
-    total = len(doacoes)
+    # Todas os checkpoints
+    checkpoints = db.query(Checkpoint).order_by(Checkpoint.data.desc()).all()
+    total = len(checkpoints)
 
-    # Doações do mês atual
-    total_mes = db.query(Doacao).filter(
-        extract("month", Doacao.data) == hoje.month,
-        extract("year", Doacao.data) == hoje.year
+    # Checkpoints do mês atual
+    total_mes = db.query(Checkpoint).filter(
+        extract("month", Checkpoint.data) == hoje.month,
+        extract("year", Checkpoint.data) == hoje.year
     ).count()
 
-    # Doações do ano atual
-    total_ano = db.query(Doacao).filter(
-        extract("year", Doacao.data) == hoje.year
+    # Checkpoint do ano atual
+    total_ano = db.query(Checkpoint).filter(
+        extract("year", Checkpoint.data) == hoje.year
     ).count()
 
     return templates.TemplateResponse("index.html", {
         "request": request,
-        "doacoes": doacoes,
-        "total_doacoes": total,
+        "doacoes": checkpoints,
+        "total_checkpoints": total,
         "total_mes": total_mes,
         "total_ano": total_ano
     })
 
-@app.post("/nova-doacao")
-def nova_doacao(
+@app.post("/novo-checkpoint")
+def novo_checkpoint(
     tipo: str = Form(...),
     data: date = Form(...),
-    local: str = Form(...),
+    menu: str = Form(...),
     db: Session = Depends(get_db)
 ):
-    nova = Doacao(tipo=tipo, data=data, local=local)
+    nova = Checkpoint(tipo=tipo, data=data, menu=menu)
     db.add(nova)
     db.commit()
     return RedirectResponse("/", status_code=303)
+
+
+if __name__ == "__main__":
+    print("Jycloapp starting...")

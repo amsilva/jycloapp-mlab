@@ -1,4 +1,4 @@
-const modal = document.getElementById("modalDoacao");
+const modal = document.getElementById("modalCheckpoint");
 const btn = document.getElementById("abrirModal");
 
 btn.addEventListener("click", () => {
