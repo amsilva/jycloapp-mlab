@@ -1,7 +1,7 @@
 # Jyclo App 🦎
 ##  tracking your fasting cycles 
 
-Um PWA minimalista para ajudar praticantes de jejum intermitente a controlar seus checkpoints alimentares e acompanhar janelas de jejum.
+Um PWA (planejado) minimalista para ajudar praticantes de jejum intermitente a controlar seus checkpoints alimentares e acompanhar janelas de jejum.
 
 Funcionalidades (v0)
 

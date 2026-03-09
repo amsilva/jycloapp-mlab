@@ -225,3 +225,42 @@ input[type="date"] {
 }
 
 
+/* Estilo para cards encerrados */
+.card.encerrado {
+    opacity: 0.7;
+    filter: grayscale(0.3);
+    border-left: 4px solid #4CAF50;
+}
+
+.badge-encerrado {
+    background-color: #4CAF50;
+    color: white;
+    font-size: 10px;
+    padding: 2px 6px;
+    border-radius: 10px;
+    margin-left: 8px;
+}
+
+.duracao {
+    font-size: 11px;
+    color: #555;
+    margin-top: 8px;
+    border-top: 1px dashed #ccc;
+    padding-top: 6px;
+}
+
+/* Ajuste para o modal de encerramento */
+#formEncerramento input[readonly],
+#formEncerramento textarea[readonly] {
+    background-color: #f5f5f5;
+    border: 1px solid #ddd;
+    cursor: not-allowed;
+}
+
+#formEncerramento textarea {
+    width: 100%;
+    padding: 8px;
+    border-radius: 6px;
+    font-family: inherit;
+}
+

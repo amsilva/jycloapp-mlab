@@ -35,14 +35,26 @@
 
 <div class="cards-container">
     {% for checkpoint in checkpoints %}
-        <div class="card {{ checkpoint.tipo }}">
+        <div class="card {{ checkpoint.tipo }} {{ 'ativo' if checkpoint.status == 'ativo' else 'encerrado' }}"
+            data-id="{{ checkpoint.id }}"
+            data-tipo="{{ checkpoint.tipo }}"
+            data-data-inicio="{{ checkpoint.data_inicio.strftime('%Y-%m-%d') }}"
+            data-menu="{{ checkpoint.menu }}"
+            data-status="{{ checkpoint.status }}"
+            onclick="abrirModalEncerramento(this)">
 
             <h2 class="card-title">
-                {{ checkpoint.tipo|capitalize }} - {{ checkpoint.data.strftime('%d/%m/%Y') }}
+                {{ checkpoint.tipo|capitalize }} - {{ checkpoint.data_inicio.strftime('%d/%m/%Y') }}
+                {% if checkpoint.status == 'encerrado' %}
+                    <span class="badge-encerrado">✓ Encerrado</span>
+                {% endif %}
             </h2>
 
             <div class="ensaios">
                 <p><strong>{{ checkpoint.menu }}</strong></p>
+                {% if checkpoint.duracao_horas %}
+                    <p class="duracao">⏱️ {{ "%.1f"|format(checkpoint.duracao_horas) }} horas</p>
+                {% endif %}
             </div>
 
         </div>
@@ -52,7 +64,7 @@
 <!-- MODAL -->
 <div id="modalCheckpoint" class="modal">
     <div class="modal-content">
-        <form method="post" action="/novo_checkpoint">
+        <form method="post" action="/novo-checkpoint">
 
             <label>Tipo</label>
             <select name="tipo" required>
@@ -62,7 +74,7 @@
             </select>
 
             <label>Data</label>
-            <input type="date" name="data" required>
+            <input type="date" name="data_inicio" required>
 
             <label>Menu</label>
             <input type="text" name="menu">
