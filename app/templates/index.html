@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <title>REDBoard</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <!-- CSS LOCAL -->
+    <link rel="stylesheet" href="{{ url_for('static', path='css/style.css') }}">
+
+    <!-- GOOGLE FONTS -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+
+    <!-- Bootstrap Icons -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons/font/bootstrap-icons.css">
+</head>
+
+<body>
+
+<h1>Meu Redboard</h1>
+
+<div class="summary">
+    <p>mês:    {{ total_mes }}</p>
+    <p>ano:    {{ total_ano }}</p>
+    <p>total:  {{ total_doacoes }}</p>
+    <div class="filter">
+        <button id="abrirModal" class="btn-add">
+            <i class="bi bi-plus-lg"></i>
+        </button>
+    </div>
+</div>
+
+<div class="cards-container">
+    {% for doacao in doacoes %}
+        <div class="card {{ doacao.tipo }}">
+
+            <h2 class="card-title">
+                {{ doacao.tipo|capitalize }} - {{ doacao.data.strftime('%d/%m/%Y') }}
+            </h2>
+
+            <div class="ensaios">
+                <p><strong>{{ doacao.local }}</strong></p>
+            </div>
+
+        </div>
+    {% endfor %}
+</div>
+
+<!-- MODAL -->
+<div id="modalDoacao" class="modal">
+    <div class="modal-content">
+        <form method="post" action="/nova-doacao">
+
+            <label>Tipo</label>
+            <select name="tipo" required>
+                <option value="sangue">Sangue</option>
+                <option value="plaqueta">Plaqueta</option>
+                <option value="plasma">Plasma</option>
+            </select>
+
+            <label>Data</label>
+            <input type="date" name="data" required>
+
+            <label>Local</label>
+            <input type="text" name="local">
+
+            <br><br>
+            <button type="submit">Salvar</button>
+        </form>
+    </div>
+</div>
+
+<script src="{{ url_for('static', path='js/main.js') }}"></script>
+
+</body>
+</html>
