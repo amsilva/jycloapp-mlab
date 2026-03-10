@@ -3,7 +3,6 @@ from datetime import datetime
 from typing import Optional
 
 class CheckpointBase(BaseModel):
-    tipo: str
     data_inicio: datetime
     comentario_inicio: Optional[str] = None
 

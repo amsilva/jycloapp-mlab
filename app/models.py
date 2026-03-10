@@ -6,7 +6,6 @@ class Checkpoint(Base):
     __tablename__ = "checkpoints"
 
     id = Column(Integer, primary_key=True, index=True)
-    tipo = Column(String, nullable=False)
     data_inicio = Column(DateTime, nullable=False, default=datetime.utcnow) 
     comentario_inicio = Column(String, nullable=True)
     

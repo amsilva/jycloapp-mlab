@@ -69,7 +69,6 @@ def create_cycle(cycle: schema.CheckpointCreate, db: Session = Depends(get_db)):
     Starts a new fasting cycle.
     """
     novo = Checkpoint(
-        tipo=cycle.tipo,
         data_inicio=cycle.data_inicio,
         comentario_inicio=cycle.comentario_inicio,
         status="ativo"

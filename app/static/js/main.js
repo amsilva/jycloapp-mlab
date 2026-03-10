@@ -188,12 +188,6 @@ function renderCards() {
                 </div>
                 
                 <div class="card-details">
-                    <!--
-                        <div class="card-type">
-                            <i class="ph ph-tag"></i>
-                            <span>${cycle.tipo.charAt(0).toUpperCase() + cycle.tipo.slice(1)}</span>
-                        </div>
-                    -->
                     ${commentHtml}
                 </div>
                 
@@ -284,7 +278,6 @@ function setupEventListeners() {
         const isoString = localDateTime.toISOString();
 
         startCycle({
-            tipo: typeValue,
             comentario_inicio: typeText,
             data_inicio: isoString
         });
