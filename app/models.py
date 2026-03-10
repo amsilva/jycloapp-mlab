@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, Date, DateTime, Float
+from sqlalchemy import Column, Integer, String, DateTime, Float
 from datetime import datetime
 from .database import Base
 
@@ -7,10 +7,11 @@ class Checkpoint(Base):
 
     id = Column(Integer, primary_key=True, index=True)
     tipo = Column(String, nullable=False)
-    data_inicio = Column(Date, nullable=False)  # Isso vira data_inicio
-    menu = Column(String, nullable=True)
+    data_inicio = Column(DateTime, nullable=False, default=datetime.utcnow) 
+    comentario_inicio = Column(String, nullable=True)
     
     # NOVOS CAMPOS
     data_fim = Column(DateTime, nullable=True)  # Quando encerrou
+    comentario_fim = Column(String, nullable=True) # Como quebrou o jejum
     duracao_horas = Column(Float, nullable=True)  # Total de horas
     status = Column(String, default="ativo")  # "ativo" ou "encerrado"

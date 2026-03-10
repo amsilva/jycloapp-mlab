@@ -2,90 +2,185 @@
 <html lang="pt-br">
 <head>
     <meta charset="UTF-8">
-    <title>Jyclo App</title>
+    <title>Jyclo</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
     <!-- CSS LOCAL -->
-    <link rel="stylesheet" href="{{ url_for('static', path='css/style.css') }}">
+    <link rel="stylesheet" href="/static/css/style.css">
 
     <!-- GOOGLE FONTS -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
-    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600&display=swap" rel="stylesheet">
-
-    <!-- Bootstrap Icons -->
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons/font/bootstrap-icons.css">
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    
+    <!-- Phosphor Icons (Modern & Minimalist) -->
+    <script src="https://unpkg.com/@phosphor-icons/web"></script>
 </head>
 
 <body>
 
-<h1>Jyclo App - tracking your fasting cycles </h1>
-
-<div class="summary">
-    <p>mês:    {{ total_mes }}</p>
-    <p>ano:    {{ total_ano }}</p>
-    <p>total:  {{ total_checkpoints }}</p>
-    <div class="filter">
-        <button id="abrirModal" class="btn-add">
-            <i class="bi bi-plus-lg"></i>
-        </button>
-    </div>
-</div>
-
-<div class="cards-container">
-    {% for checkpoint in checkpoints %}
-        <div class="card {{ checkpoint.tipo }} {{ 'ativo' if checkpoint.status == 'ativo' else 'encerrado' }}"
-            data-id="{{ checkpoint.id }}"
-            data-tipo="{{ checkpoint.tipo }}"
-            data-data-inicio="{{ checkpoint.data_inicio.strftime('%Y-%m-%d') }}"
-            data-menu="{{ checkpoint.menu }}"
-            data-status="{{ checkpoint.status }}"
-            onclick="abrirModalEncerramento(this)">
-
-            <h2 class="card-title">
-                {{ checkpoint.tipo|capitalize }} - {{ checkpoint.data_inicio.strftime('%d/%m/%Y') }}
-                {% if checkpoint.status == 'encerrado' %}
-                    <span class="badge-encerrado">✓ Encerrado</span>
-                {% endif %}
-            </h2>
-
-            <div class="ensaios">
-                <p><strong>{{ checkpoint.menu }}</strong></p>
-                {% if checkpoint.duracao_horas %}
-                    <p class="duracao">⏱️ {{ "%.1f"|format(checkpoint.duracao_horas) }} horas</p>
-                {% endif %}
-            </div>
-
+    <!-- Header Section -->
+    <header class="app-header">
+        <div class="logo">
+            <i class="ph-fill ph-infinity"></i>
+            <h1>Jyclo</h1>
         </div>
-    {% endfor %}
-</div>
+        <div class="header-actions">
+            <button id="theme-toggle" class="icon-btn">
+                <i class="ph ph-moon"></i>
+            </button>
+        </div>
+    </header>
 
-<!-- MODAL -->
-<div id="modalCheckpoint" class="modal">
-    <div class="modal-content">
-        <form method="post" action="/novo-checkpoint">
+    <!-- App Container -->
+    <main class="app-container">
+        
+        <!-- Gamification / Stats Panel -->
+        <section class="stats-panel glass-panel">
+            <div class="stat-box">
+                <span class="stat-value" id="stat-longest">0h</span>
+                <span class="stat-label">Recorde</span>
+            </div>
+            <div class="stat-divider"></div>
+            <div class="stat-box">
+                <span class="stat-value" id="stat-month">0</span>
+                <span class="stat-label">Este Mês</span>
+            </div>
+            <div class="stat-divider"></div>
+            <div class="stat-box">
+                <span class="stat-value" id="stat-year">0</span>
+                <span class="stat-label">Este Ano</span>
+            </div>
+            <div class="stat-divider"></div>
+            <div class="stat-box">
+                <span class="stat-value" id="stat-total">0</span>
+                <span class="stat-label">Total</span>
+            </div>
+        </section>
 
-            <label>Tipo</label>
-            <select name="tipo" required>
-                <option value="refeicao">Refeição</option>
-                <option value="lanche">Lanche</option>
-                <option value="guloseimas">Guloseimas</option>
-            </select>
+        <!-- Timeline / Cards -->
+        <section class="timeline">
+            <div class="timeline-header">
+                <h2>Seus Ciclos</h2>
+            </div>
+            
+            <div id="cards-container" class="cards-container">
+                <!-- Cards will be injected here by JS -->
+                <div class="loading-state">
+                    <i class="ph ph-spinner-gap ph-spin"></i>
+                    <p>Carregando seus ciclos...</p>
+                </div>
+            </div>
+        </section>
 
-            <label>Data</label>
-            <input type="date" name="data_inicio" required>
+    </main>
 
-            <label>Menu</label>
-            <input type="text" name="menu">
+    <!-- Floating Action Button -->
+    <button id="btn-start-fast" class="fab">
+        <i class="ph ph-plus"></i>
+    </button>
 
-            <br><br>
-            <button type="submit">Salvar</button>
-        </form>
+    <!-- Modals -->
+
+    <!-- START FAST MODAL -->
+    <div id="modal-start" class="modal-backdrop hidden">
+        <div class="modal glass-panel">
+            <div class="modal-header">
+                <h3>Iniciar Jejum</h3>
+                <button class="icon-btn close-modal"><i class="ph ph-x"></i></button>
+            </div>
+            <div class="modal-body">
+                <form id="form-start">
+                    <div class="form-group">
+                        <label>Tipo (Opcional)</label>
+                        <select id="start-type">
+                            <option value="refeicao">Refeição Principal</option>
+                            <option value="lanche">Refeição leve</option>
+                            <option value="guloseimas">Guloseimas</option>
+                            <option value="bebidas">Bebidas</option>
+                        </select>
+                    </div>
+                     <div class="form-group-inline">
+                         <div class="form-group">
+                            <label>Data</label>
+                            <input type="date" id="start-date" required>
+                         </div>
+                         <div class="form-group">
+                            <label>Hora</label>
+                            <input type="time" id="start-time" required>
+                         </div>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary close-modal">Cancelar</button>
+                <button class="btn btn-primary" id="btn-confirm-start">Começar</button>
+            </div>
+        </div>
     </div>
-</div>
 
-<script src="{{ url_for('static', path='js/main.js') }}"></script>
+    <!-- CLOSE FAST MODAL -->
+    <div id="modal-close" class="modal-backdrop hidden">
+        <div class="modal glass-panel">
+            <div class="modal-header">
+                <h3>Quebrar Jejum</h3>
+                <button class="icon-btn close-modal"><i class="ph ph-x"></i></button>
+            </div>
+            <div class="modal-body">
+                <p class="celebration-text">Parabéns! Você alcançou <strong id="close-duration">0h</strong> de jejum.</p>
+                <form id="form-close">
+                    <div class="form-group">
+                        <label>Alimentação (Opcional)</label>
+                        <select id="close-type">
+                            <option value="">Nenhuma</option>
+                            <option value="Refeição principal">Refeição Principal</option>
+                            <option value="Refeição leve">Refeição leve</option>
+                            <option value="Guloseimas">Guloseimas</option>
+                            <option value="Bebidas">Bebidas</option>
+                        </select>
+                    </div>
+                    <div class="form-group-inline">
+                         <div class="form-group">
+                            <label>Data de Encerramento (Opcional)</label>
+                            <input type="date" id="close-date">
+                         </div>
+                         <div class="form-group">
+                            <label>Hora de Encerramento (Opcional)</label>
+                            <input type="time" id="close-time">
+                         </div>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary close-modal">Continuar Jejum</button>
+                <button class="btn btn-success" id="btn-confirm-close">Quebrar Jejum</button>
+            </div>
+        </div>
+    </div>
+    
+    <!-- DELETE CONFIRM MODAL -->
+    <div id="modal-delete" class="modal-backdrop hidden">
+        <div class="modal glass-panel">
+            <div class="modal-header">
+                <h3>Excluir Ciclo</h3>
+                <button class="icon-btn close-modal"><i class="ph ph-x"></i></button>
+            </div>
+            <div class="modal-body">
+                <p>Tem certeza que deseja apagar este ciclo? Esta ação não pode ser desfeita.</p>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary close-modal">Cancelar</button>
+                <button class="btn btn-danger" id="btn-confirm-delete">Excluir</button>
+            </div>
+        </div>
+    </div>
 
+    <!-- Toast Notification -->
+    <div id="toast" class="toast hidden">
+        <i class="ph ph-check-circle" id="toast-icon"></i>
+        <span id="toast-msg">Operação realizada com sucesso!</span>
+    </div>
+
+    <script src="/static/js/main.js"></script>
 </body>
 </html>

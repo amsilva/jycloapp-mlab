@@ -1,100 +1,376 @@
-const modal = document.getElementById("modalCheckpoint");
-const btn = document.getElementById("abrirModal");
+// --- STATE ---
+let cycles = [];
+let stats = {};
+let activeTimers = {}; // { id: intervalInstance }
+let selectedCycleId = null;
 
-btn.addEventListener("click", () => {
-    modal.style.display = "block";
+// --- DOM ELEMENTS ---
+const cardsContainer = document.getElementById('cards-container');
+const themeToggle = document.getElementById('theme-toggle');
+
+// Stats Elements
+const statLongest = document.getElementById('stat-longest');
+const statMonth = document.getElementById('stat-month');
+const statYear = document.getElementById('stat-year');
+const statTotal = document.getElementById('stat-total');
+
+// Modals
+const modalStart = document.getElementById('modal-start');
+const modalClose = document.getElementById('modal-close');
+const modalDelete = document.getElementById('modal-delete');
+
+// Buttons
+const btnStartFast = document.getElementById('btn-start-fast');
+const btnConfirmStart = document.getElementById('btn-confirm-start');
+const btnConfirmClose = document.getElementById('btn-confirm-close');
+const btnConfirmDelete = document.getElementById('btn-confirm-delete');
+const closeButtons = document.querySelectorAll('.close-modal');
+
+// --- INIT ---
+document.addEventListener('DOMContentLoaded', () => {
+    initTheme();
+    fetchCycles();
+    setupEventListeners();
 });
 
-window.addEventListener("click", (e) => {
-    if (e.target === modal) {
-        modal.style.display = "none";
-    }
-});
+// --- THEME MANAGEMENT ---
+function initTheme() {
+    const savedTheme = localStorage.getItem('theme') || 'dark';
+    document.documentElement.setAttribute('data-theme', savedTheme);
+    updateThemeIcon(savedTheme);
 
-// NOVO: Modal de encerramento
-const modalEncerramento = document.createElement('div');
-modalEncerramento.id = "modalEncerramento";
-modalEncerramento.className = "modal";
-modalEncerramento.innerHTML = `
-    <div class="modal-content">
-        <h3>Encerrar ciclo</h3>
-        <form id="formEncerramento">
-            <input type="hidden" id="checkpoint_id" name="checkpoint_id">
-            
-            <label>Tipo</label>
-            <input type="text" id="exibe_tipo" readonly disabled>
-            
-            <label>Data de início</label>
-            <input type="text" id="exibe_data_inicio" readonly disabled>
-            
-            <label>Menu</label>
-            <textarea id="exibe_menu" readonly disabled rows="2"></textarea>
-            
-            <label>Data de encerramento</label>
-            <input type="text" id="exibe_data_fim" value="${new Date().toLocaleString()}" readonly disabled>
-            
-            <br><br>
-            <button type="button" onclick="confirmarEncerramento()">✅ Confirmar encerramento</button>
-            <button type="button" onclick="fecharModalEncerramento()">❌ Cancelar</button>
-        </form>
-    </div>
-`;
-document.body.appendChild(modalEncerramento);
-
-// Função para abrir modal de encerramento
-function abrirModalEncerramento(cardElement) {
-    // Só permite encerrar se estiver ativo
-    if (cardElement.dataset.status === 'encerrado') {
-        alert('Este ciclo já foi encerrado!');
-        return;
-    }
-    
-    // Preenche o modal com os dados do card
-    document.getElementById('checkpoint_id').value = cardElement.dataset.id;
-    document.getElementById('exibe_tipo').value = cardElement.dataset.tipo;
-    
-    // Formata a data de início
-    const dataInicio = new Date(cardElement.dataset.dataInicio + 'T00:00:00');
-    document.getElementById('exibe_data_inicio').value = dataInicio.toLocaleString();
-    
-    document.getElementById('exibe_menu').value = cardElement.dataset.menu;
-    
-    // Abre o modal
-    modalEncerramento.style.display = "block";
+    themeToggle.addEventListener('click', () => {
+        const currentTheme = document.documentElement.getAttribute('data-theme');
+        const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
+        document.documentElement.setAttribute('data-theme', newTheme);
+        localStorage.setItem('theme', newTheme);
+        updateThemeIcon(newTheme);
+    });
 }
 
-// Função para confirmar encerramento
-async function confirmarEncerramento() {
-    const checkpointId = document.getElementById('checkpoint_id').value;
-    
+function updateThemeIcon(theme) {
+    const icon = themeToggle.querySelector('i');
+    if (theme === 'dark') {
+        icon.className = 'ph ph-sun';
+    } else {
+        icon.className = 'ph ph-moon';
+    }
+}
+
+// --- API CALLS ---
+async function fetchCycles() {
     try {
-        const response = await fetch(`/encerrar-checkpoint/${checkpointId}`, {
+        const res = await fetch('/api/cycles');
+        const data = await res.json();
+        cycles = data.checkpoints;
+        stats = data.stats;
+        renderDashboard();
+    } catch (error) {
+        showToast('Erro ao carregar os dados.', 'error');
+        console.error(error);
+    }
+}
+
+async function startCycle(payload) {
+    try {
+        const res = await fetch('/api/cycles', {
             method: 'POST',
-            headers: {
-                'Content-Type': 'application/json'
-            }
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
         });
-        
-        if (response.ok) {
-            alert('Ciclo encerrado com sucesso!');
-            window.location.reload(); // Recarrega para mostrar atualizado
-        } else {
-            alert('Erro ao encerrar ciclo');
+        if (res.ok) {
+            closeAllModals();
+            showToast('Jejum iniciado com sucesso!', 'success');
+            fetchCycles(); // Refresh all
         }
     } catch (error) {
-        console.error('Erro:', error);
-        alert('Erro de conexão');
+        showToast('Erro ao iniciar jejum.', 'error');
     }
 }
 
-// Fechar modal
-function fecharModalEncerramento() {
-    modalEncerramento.style.display = "none";
+async function closeCycle(id, payload) {
+    try {
+        const res = await fetch(`/api/cycles/${id}/close`, {
+            method: 'PATCH',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+        });
+        if (res.ok) {
+            closeAllModals();
+            showToast('Jejum quebrado com sucesso!', 'success');
+            fetchCycles();
+        }
+    } catch (error) {
+        showToast('Erro ao quebrar jejum.', 'error');
+    }
 }
 
-// Adicionar evento de clique fora do modal
-window.addEventListener("click", (e) => {
-    if (e.target === modalEncerramento) {
-        modalEncerramento.style.display = "none";
+async function deleteCycle(id) {
+    try {
+        const res = await fetch(`/api/cycles/${id}`, { method: 'DELETE' });
+        if (res.ok) {
+            closeAllModals();
+            showToast('Ciclo excluído.', 'success');
+            fetchCycles();
+        }
+    } catch (error) {
+        showToast('Erro ao excluir ciclo.', 'error');
     }
-});
+}
+
+// --- RENDERING ---
+function renderDashboard() {
+    // 1. Render Stats
+    statTotal.textContent = stats.total;
+    statMonth.textContent = stats.total_mes;
+    statYear.textContent = stats.total_ano;
+    statLongest.textContent = stats.longest_window > 0 ? `${stats.longest_window}h` : '0h';
+
+    // Disable start button if there's an active cycle
+    const hasActive = cycles.some(c => c.status === 'ativo');
+    if(hasActive) {
+        btnStartFast.style.display = 'none';
+    } else {
+        btnStartFast.style.display = 'flex';
+    }
+
+    // 2. Render Cards
+    renderCards();
+}
+
+function renderCards() {
+    cardsContainer.innerHTML = '';
+    
+    // Clear old intervals
+    Object.values(activeTimers).forEach(clearInterval);
+    activeTimers = {};
+
+    if (cycles.length === 0) {
+        cardsContainer.innerHTML = `
+            <div class="loading-state">
+                <i class="ph ph-coffee"></i>
+                <p>Nenhum jejum registrado. Comece um agora!</p>
+            </div>
+        `;
+        return;
+    }
+
+    cycles.forEach(cycle => {
+        const card = document.createElement('div');
+        card.className = `cycle-card glass-panel ${cycle.status === 'ativo' ? 'active' : ''}`;
+        
+        const isAtivo = cycle.status === 'ativo';
+        const startDate = new Date(`${cycle.data_inicio}Z`); // ensure UTC parsed correctly depending on backend format
+        const formattedDate = startDate.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric' });
+        const formatTime = startDate.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+
+        // Build Inner HTML
+        let statusHtml = isAtivo 
+            ? `<span class="card-status status-active">Em Andamento</span>` 
+            : `<span class="card-status status-closed">Encerrado</span>`;
+        
+        let commentHtml = '';
+        if(cycle.comentario_inicio) {
+            commentHtml += `<div class="card-comment"><i class="ph ph-arrow-up-right"></i> Início: ${cycle.comentario_inicio}</div>`;
+        }
+        if(cycle.comentario_fim) {
+            commentHtml += `<div class="card-comment"><i class="ph ph-arrow-down-left"></i> Fim: ${cycle.comentario_fim}</div>`;
+        }
+
+        card.innerHTML = `
+            <div class="card-header">
+                ${statusHtml}
+                <span class="card-date">${formattedDate} às ${formatTime}</span>
+            </div>
+            <div class="card-main">
+                <div class="card-duration" id="duration-${cycle.id}">
+                    ${isAtivo ? '00:00:00' : `${cycle.duracao_horas}h`}
+                </div>
+                
+                <div class="card-details">
+                    <div class="card-type">
+                        <i class="ph ph-tag"></i>
+                        <span>${cycle.tipo.charAt(0).toUpperCase() + cycle.tipo.slice(1)}</span>
+                    </div>
+                    ${commentHtml}
+                </div>
+                
+                <div class="card-actions z-over">
+                    <button class="icon-btn danger btn-delete" data-id="${cycle.id}" title="Excluir">
+                        <i class="ph ph-trash"></i>
+                    </button>
+                </div>
+            </div>
+        `;
+
+        // Click Evens on Card
+        card.addEventListener('click', (e) => {
+            // Prevent if clicking on delete button
+            if(e.target.closest('.btn-delete')) return;
+            
+            if (isAtivo) {
+                openCloseModal(cycle);
+            }
+        });
+
+        // Click Event on Delete
+        const delBtn = card.querySelector('.btn-delete');
+        delBtn.addEventListener('click', (e) => {
+            e.stopPropagation(); // stop triggering card click
+            openDeleteModal(cycle.id);
+        });
+
+        cardsContainer.appendChild(card);
+
+        // Start real-time counter if active
+        if (isAtivo) {
+            updateLiveDuration(cycle.id, cycle.data_inicio);
+            activeTimers[cycle.id] = setInterval(() => {
+                updateLiveDuration(cycle.id, cycle.data_inicio);
+            }, 1000);
+        }
+    });
+}
+
+function updateLiveDuration(id, startTimeStr) {
+    const el = document.getElementById(`duration-${id}`);
+    if (!el) return;
+
+    // Fastapi returns isoformat without Z, Javascript assumes local time, we must parse correctly
+    const startObj = new Date(startTimeStr + (startTimeStr.endsWith('Z') ? '' : 'Z'));
+    const now = new Date();
+    
+    let diffMs = now - startObj;
+    if(diffMs < 0) diffMs = 0; // prevent negative if clocks slightly off
+
+    // calculate H:M:S
+    const hrs = Math.floor(diffMs / 3600000);
+    const mins = Math.floor((diffMs % 3600000) / 60000);
+    const secs = Math.floor((diffMs % 60000) / 1000);
+
+    const pad = (n) => String(n).padStart(2, '0');
+    el.textContent = `${pad(hrs)}:${pad(mins)}:${pad(secs)}`;
+}
+
+
+// --- EVENT LISTENERS & MODALS ---
+function setupEventListeners() {
+    // Start Fast setup
+    btnStartFast.addEventListener('click', openStartModal);
+
+    // Global Modal Close
+    closeButtons.forEach(btn => {
+        btn.addEventListener('click', closeAllModals);
+    });
+
+    // Form Submits
+    btnConfirmStart.addEventListener('click', () => {
+        const typeSelect = document.getElementById('start-type');
+        const typeValue = typeSelect.value;
+        const typeText = typeSelect.options[typeSelect.selectedIndex].text;
+        
+        const date = document.getElementById('start-date').value;
+        const time = document.getElementById('start-time').value;
+        
+        if(!date || !time) {
+            showToast('Data e hora são obrigatórios.', 'error');
+            return;
+        }
+
+        // Convert Local input to UTC ISO String to send to server
+        const localDateTime = new Date(`${date}T${time}`);
+        const isoString = localDateTime.toISOString();
+
+        startCycle({
+            tipo: typeValue,
+            comentario_inicio: typeText,
+            data_inicio: isoString
+        });
+    });
+
+    btnConfirmClose.addEventListener('click', () => {
+        const closeType = document.getElementById('close-type').value;
+        
+        const date = document.getElementById('close-date').value;
+        const time = document.getElementById('close-time').value;
+        
+        let payload = { comentario_fim: closeType };
+        
+        if (date && time) {
+            const localDateTime = new Date(`${date}T${time}`);
+            payload.data_fim = localDateTime.toISOString();
+        }
+
+        if(selectedCycleId) {
+            closeCycle(selectedCycleId, payload);
+        }
+    });
+
+    btnConfirmDelete.addEventListener('click', () => {
+        if(selectedCycleId) {
+            deleteCycle(selectedCycleId);
+        }
+    });
+}
+
+function openStartModal() {
+    // defaults
+    document.getElementById('start-type').selectedIndex = 0;
+    
+    // Set current local time
+    const now = new Date();
+    document.getElementById('start-date').value = now.toISOString().split('T')[0];
+    document.getElementById('start-time').value = now.toTimeString().split(' ')[0].slice(0,5);
+
+    modalStart.classList.remove('hidden');
+}
+
+function openCloseModal(cycle) {
+    selectedCycleId = cycle.id;
+    document.getElementById('close-type').selectedIndex = 0;
+    
+    // Set current local time for closing
+    const now = new Date();
+    document.getElementById('close-date').value = now.toISOString().split('T')[0];
+    document.getElementById('close-time').value = now.toTimeString().split(' ')[0].slice(0,5);
+    
+    // Copy the current duration into modal
+    const liveDurStr = document.getElementById(`duration-${cycle.id}`).textContent;
+    document.getElementById('close-duration').textContent = liveDurStr;
+
+    modalClose.classList.remove('hidden');
+}
+
+function openDeleteModal(id) {
+    selectedCycleId = id;
+    modalDelete.classList.remove('hidden');
+}
+
+function closeAllModals() {
+    modalStart.classList.add('hidden');
+    modalClose.classList.add('hidden');
+    modalDelete.classList.add('hidden');
+    selectedCycleId = null;
+}
+
+// --- UTILS ---
+function showToast(msg, type = 'success') {
+    const toast = document.getElementById('toast');
+    const msgEl = document.getElementById('toast-msg');
+    const iconEl = document.getElementById('toast-icon');
+
+    msgEl.textContent = msg;
+    toast.className = `toast ${type}`;
+    
+    if (type === 'success') {
+        iconEl.className = 'ph ph-check-circle';
+    } else {
+        iconEl.className = 'ph ph-warning-circle';
+    }
+
+    // Hide after 3s
+    setTimeout(() => {
+        toast.classList.add('hidden');
+        toast.className = 'toast hidden';
+    }, 3000);
+}

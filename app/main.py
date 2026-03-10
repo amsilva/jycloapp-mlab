@@ -1,21 +1,22 @@
-from fastapi import FastAPI, HTTPException, Request, Depends, Form
-from fastapi.responses import HTMLResponse, RedirectResponse
+from fastapi import FastAPI, HTTPException, Request, Depends, status
+from fastapi.responses import HTMLResponse
 from fastapi.staticfiles import StaticFiles
 from sqlalchemy.orm import Session
-from sqlalchemy import extract
-from datetime import date
+from sqlalchemy import extract, func
+from datetime import datetime
+from typing import List
+
 from .database import SessionLocal, engine
 from .models import Base, Checkpoint
+from . import schema
 from fastapi.templating import Jinja2Templates
-import datetime
 
-app = FastAPI()
+app = FastAPI(title="Jyclo API")
 
 Base.metadata.create_all(bind=engine)
 
 app.mount("/static", StaticFiles(directory="app/static"), name="static")
 templates = Jinja2Templates(directory="app/templates")
-
 
 def get_db():
     db = SessionLocal()
@@ -24,92 +25,105 @@ def get_db():
     finally:
         db.close()
 
-
-
 @app.get("/", response_class=HTMLResponse)
-def index(request: Request, db: Session = Depends(get_db)):
-    hoje = date.today()
+def index(request: Request):
+    """
+    Serves the main SPA HTML file.
+    """
+    return templates.TemplateResponse("index.html", {"request": request})
 
-    # Todas os checkpoints
+# ----------------- API ENDPOINTS -----------------
+
+@app.get("/api/cycles", response_model=dict)
+def get_cycles(db: Session = Depends(get_db)):
+    """
+    Returns all cycles and calculated statistics.
+    """
+    now = datetime.utcnow()
+    
+    # All checkpoints ordered by start date descending
     checkpoints = db.query(Checkpoint).order_by(Checkpoint.data_inicio.desc()).all()
+    
+    # Calculate stats
     total = len(checkpoints)
+    
+    total_mes = sum(1 for c in checkpoints if c.data_inicio.month == now.month and c.data_inicio.year == now.year)
+    total_ano = sum(1 for c in checkpoints if c.data_inicio.year == now.year)
+    
+    # Longest window
+    longest_window = db.query(func.max(Checkpoint.duracao_horas)).scalar()
+    longest_window = longest_window if longest_window else 0.0
 
-    # Checkpoints do mês atual
-    total_mes = db.query(Checkpoint).filter(
-        extract("month", Checkpoint.data_inicio) == hoje.month,
-        extract("year", Checkpoint.data_inicio) == hoje.year
-    ).count()
+    return {
+        "checkpoints": [schema.CheckpointResponse.from_orm(c) for c in checkpoints],
+        "stats": {
+            "total": total,
+            "total_mes": total_mes,
+            "total_ano": total_ano,
+            "longest_window": longest_window
+        }
+    }
 
-    # Checkpoint do ano atual
-    total_ano = db.query(Checkpoint).filter(
-        extract("year", Checkpoint.data_inicio) == hoje.year
-    ).count()
-
-    return templates.TemplateResponse("index.html", {
-        "request": request,
-        "checkpoints": checkpoints,
-        "total_checkpoints": total,
-        "total_mes": total_mes,
-        "total_ano": total_ano
-    })
-
-@app.post("/novo-checkpoint")
-def novo_checkpoint(
-    tipo: str = Form(...),
-    data_inicio: date = Form(...),
-    menu: str = Form(...),
-    db: Session = Depends(get_db)
-):
-    novo = Checkpoint(tipo=tipo, data_inicio=data_inicio, menu=menu)
+@app.post("/api/cycles", response_model=schema.CheckpointResponse, status_code=status.HTTP_201_CREATED)
+def create_cycle(cycle: schema.CheckpointCreate, db: Session = Depends(get_db)):
+    """
+    Starts a new fasting cycle.
+    """
+    novo = Checkpoint(
+        tipo=cycle.tipo,
+        data_inicio=cycle.data_inicio,
+        comentario_inicio=cycle.comentario_inicio,
+        status="ativo"
+    )
     db.add(novo)
     db.commit()
-    return RedirectResponse("/", status_code=303)
+    db.refresh(novo)
+    return novo
 
-@app.post("/encerrar-checkpoint/{checkpoint_id}")
-async def encerrar_checkpoint(checkpoint_id: int):
-    db = SessionLocal()
-    try:
-        # Buscar o checkpoint
-        checkpoint = db.query(Checkpoint).filter(
-            Checkpoint.id == checkpoint_id
-        ).first()
+@app.patch("/api/cycles/{checkpoint_id}/close", response_model=schema.CheckpointResponse)
+def close_cycle(checkpoint_id: int, closing_data: schema.CheckpointClose, db: Session = Depends(get_db)):
+    """
+    Closes an active fasting cycle.
+    """
+    checkpoint = db.query(Checkpoint).filter(Checkpoint.id == checkpoint_id).first()
+    
+    if not checkpoint:
+        raise HTTPException(status_code=404, detail="Checkpoint não encontrado")
+    
+    if checkpoint.status == "encerrado":
+        raise HTTPException(status_code=400, detail="Checkpoint já está encerrado")
+    
+    agora = closing_data.data_fim if closing_data.data_fim else datetime.utcnow()
+    # Ensure agora is offset-naive to compare with data_inicio
+    if agora.tzinfo is not None:
+        agora = agora.replace(tzinfo=None)
         
-        if not checkpoint:
-            raise HTTPException(status_code=404, detail="Checkpoint não encontrado")
-        
-        # Se já estiver encerrado, não permitir novo encerramento
-        if checkpoint.status == "encerrado":
-            raise HTTPException(status_code=400, detail="Checkpoint já está encerrado")
-        
-        # Definir data de fim
-        agora = datetime.now()
-        checkpoint.data_fim = agora
-        
-        # Calcular duração em horas
-        data_inicio = datetime.combine(checkpoint.data_inicio, datetime.min.time())
-        delta = agora - data_inicio
-        checkpoint.duracao_horas = round(delta.total_seconds() / 3600, 2)
-        
-        # Atualizar status
-        checkpoint.status = "encerrado"
-        
-        # Salvar
-        db.commit()
-        db.refresh(checkpoint)
-        
-        return {
-            "success": True,
-            "message": "Ciclo encerrado com sucesso",
-            "duracao_horas": checkpoint.duracao_horas
-        }
-        
-    except Exception as e:
-        db.rollback()
-        raise HTTPException(status_code=500, detail=str(e))
-    finally:
-        db.close()
+    # Check if end time is before start time
+    if agora < checkpoint.data_inicio:
+        raise HTTPException(status_code=400, detail="Data de encerramento não pode ser anterior à data de início")
 
+    checkpoint.data_fim = agora
+    checkpoint.comentario_fim = closing_data.comentario_fim
+    
+    # Calcular duração em horas
+    delta = agora - checkpoint.data_inicio
+    checkpoint.duracao_horas = round(delta.total_seconds() / 3600, 2)
+    checkpoint.status = "encerrado"
+    
+    db.commit()
+    db.refresh(checkpoint)
+    
+    return checkpoint
 
-
-if __name__ == "__main__":
-    print("Jycloapp starting...")
+@app.delete("/api/cycles/{checkpoint_id}", status_code=status.HTTP_204_NO_CONTENT)
+def delete_cycle(checkpoint_id: int, db: Session = Depends(get_db)):
+    """
+    Deletes a cycle completely from the system.
+    """
+    checkpoint = db.query(Checkpoint).filter(Checkpoint.id == checkpoint_id).first()
+    if not checkpoint:
+        raise HTTPException(status_code=404, detail="Checkpoint não encontrado")
+    
+    db.delete(checkpoint)
+    db.commit()
+    return None
