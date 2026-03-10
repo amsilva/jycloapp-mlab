@@ -2,9 +2,8 @@ from fastapi import FastAPI, HTTPException, Request, Depends, status
 from fastapi.responses import HTMLResponse
 from fastapi.staticfiles import StaticFiles
 from sqlalchemy.orm import Session
-from sqlalchemy import extract, func
+from sqlalchemy import func
 from datetime import datetime
-from typing import List
 
 from .database import SessionLocal, engine
 from .models import Base, Checkpoint
