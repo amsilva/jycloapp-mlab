@@ -171,10 +171,10 @@ function renderCards() {
         
         let commentHtml = '';
         if(cycle.comentario_inicio) {
-            commentHtml += `<div class="card-comment"><i class="ph ph-arrow-up-right"></i> Início: ${cycle.comentario_inicio}</div>`;
+            commentHtml += `<div class="card-comment"><i class="ph ph-arrow-clockwise"></i> ${cycle.comentario_inicio}</div>`;
         }
         if(cycle.comentario_fim) {
-            commentHtml += `<div class="card-comment"><i class="ph ph-arrow-down-left"></i> Fim: ${cycle.comentario_fim}</div>`;
+            commentHtml += `<div class="card-comment"><i class="ph ph-pause-circle"></i> ${cycle.comentario_fim}</div>`;
         }
 
         card.innerHTML = `
@@ -188,10 +188,12 @@ function renderCards() {
                 </div>
                 
                 <div class="card-details">
-                    <div class="card-type">
-                        <i class="ph ph-tag"></i>
-                        <span>${cycle.tipo.charAt(0).toUpperCase() + cycle.tipo.slice(1)}</span>
-                    </div>
+                    <!--
+                        <div class="card-type">
+                            <i class="ph ph-tag"></i>
+                            <span>${cycle.tipo.charAt(0).toUpperCase() + cycle.tipo.slice(1)}</span>
+                        </div>
+                    -->
                     ${commentHtml}
                 </div>
                 
