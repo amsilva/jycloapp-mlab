@@ -1,3 +1,5 @@
+import os
+from pathlib import Path
 from fastapi import FastAPI, HTTPException, Request, Depends, status
 from fastapi.responses import HTMLResponse
 from fastapi.staticfiles import StaticFiles
@@ -9,6 +11,9 @@ from passlib.context import CryptContext
 from jose import JWTError, jwt
 from typing import Optional
 
+# Absolute path to the app/ directory — works regardless of working directory
+APP_DIR = Path(__file__).resolve().parent
+
 from .database import SessionLocal, engine
 from .models import Base, Checkpoint, User
 from . import schema
@@ -17,7 +22,6 @@ from fastapi.templating import Jinja2Templates
 app = FastAPI(title="Jyclo API")
 
 # --- Security Config ---
-import os
 SECRET_KEY = os.environ.get("SECRET_KEY", "super-secret-jyclo-dev-key")
 ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_DAYS = 30
@@ -71,8 +75,8 @@ def get_current_user(credentials: HTTPAuthorizationCredentials = Depends(securit
     
 Base.metadata.create_all(bind=engine)
 
-app.mount("/static", StaticFiles(directory="app/static"), name="static")
-templates = Jinja2Templates(directory="app/templates")
+app.mount("/static", StaticFiles(directory=str(APP_DIR / "static")), name="static")
+templates = Jinja2Templates(directory=str(APP_DIR / "templates"))
 
 def get_db():
     db = SessionLocal()
