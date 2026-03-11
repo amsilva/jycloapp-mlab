@@ -17,7 +17,8 @@ from fastapi.templating import Jinja2Templates
 app = FastAPI(title="Jyclo API")
 
 # --- Security Config ---
-SECRET_KEY = "super-secret-jyclo-key" # In production, use env var!
+import os
+SECRET_KEY = os.environ.get("SECRET_KEY", "super-secret-jyclo-dev-key")
 ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_DAYS = 30
 
