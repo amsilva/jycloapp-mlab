@@ -46,7 +46,16 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 });
 
-// --- THEME MANAGEMENT ---
+// --- PWA SERVICE WORKER REGISTRATION ---
+if ('serviceWorker' in navigator) {
+    window.addEventListener('load', () => {
+        navigator.serviceWorker.register('/sw.js')
+            .then(reg => console.log('Jyclo SW registrado com sucesso!', reg))
+            .catch(err => console.log('Erro ao registrar Jyclo SW:', err));
+    });
+}
+
+// --- STATE MANAGEMENT ---
 function initTheme() {
     const savedTheme = localStorage.getItem('theme') || 'dark';
     document.documentElement.setAttribute('data-theme', savedTheme);

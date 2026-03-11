@@ -1,0 +1,22 @@
+{
+  "name": "Jyclo",
+  "short_name": "Jyclo",
+  "description": "App minimalista para controle de jejum intermitente.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#0d0a1b",
+  "theme_color": "#0d0a1b",
+  "orientation": "portrait-primary",
+  "icons": [
+    {
+      "src": "/static/icons/icon-192.png",
+      "type": "image/png",
+      "sizes": "192x192"
+    },
+    {
+      "src": "/static/icons/icon-512.png",
+      "type": "image/png",
+      "sizes": "512x512"
+    }
+  ]
+}

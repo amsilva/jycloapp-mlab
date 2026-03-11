@@ -1,7 +1,7 @@
 import os
 from pathlib import Path
-from fastapi import FastAPI, HTTPException, Request, Depends, status
-from fastapi.responses import HTMLResponse
+from fastapi import FastAPI, Depends, HTTPException, status, Request
+from fastapi.responses import HTMLResponse, JSONResponse, FileResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from sqlalchemy.orm import Session
@@ -91,6 +91,14 @@ def index(request: Request):
     Serves the main SPA HTML file.
     """
     return templates.TemplateResponse("index.html", {"request": request})
+
+@app.get("/manifest.json")
+async def manifest():
+    return FileResponse(APP_DIR / "static" / "manifest.json")
+
+@app.get("/sw.js")
+async def service_worker():
+    return FileResponse(APP_DIR / "static" / "sw.js", media_type="application/javascript")
 
 # ----------------- AUTH ENDPOINTS -----------------
 
