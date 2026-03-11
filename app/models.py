@@ -7,8 +7,8 @@ class User(Base):
     __tablename__ = "users"
 
     id = Column(Integer, primary_key=True, index=True)
-    email = Column(String, unique=True, index=True, nullable=False)
-    pin_hash = Column(String, nullable=False)
+    email = Column(String(255), unique=True, index=True, nullable=False)
+    pin_hash = Column(String(255), nullable=False)
     
     checkpoints = relationship("Checkpoint", back_populates="user")
 
@@ -18,12 +18,12 @@ class Checkpoint(Base):
     id = Column(Integer, primary_key=True, index=True)
     user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
     data_inicio = Column(DateTime, nullable=False, default=datetime.utcnow) 
-    comentario_inicio = Column(String, nullable=True)
+    comentario_inicio = Column(String(100), nullable=True)
     
     user = relationship("User", back_populates="checkpoints")
     
     # NOVOS CAMPOS
-    data_fim = Column(DateTime, nullable=True)  # Quando encerrou
-    comentario_fim = Column(String, nullable=True) # Como quebrou o jejum
-    duracao_horas = Column(Float, nullable=True)  # Total de horas
-    status = Column(String, default="ativo")  # "ativo" ou "encerrado"
+    data_fim = Column(DateTime, nullable=True)
+    comentario_fim = Column(String(100), nullable=True)
+    duracao_horas = Column(Float, nullable=True)
+    status = Column(String(20), default="ativo")
