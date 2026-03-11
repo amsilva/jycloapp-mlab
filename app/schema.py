@@ -1,6 +1,10 @@
-from pydantic import BaseModel
+from pydantic import BaseModel, EmailStr, constr
 from datetime import datetime
 from typing import Optional
+
+class UserAuth(BaseModel):
+    email: EmailStr
+    pin: str
 
 class CheckpointBase(BaseModel):
     data_inicio: datetime

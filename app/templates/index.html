@@ -29,6 +29,9 @@
             <button id="theme-toggle" class="icon-btn">
                 <i class="ph ph-moon"></i>
             </button>
+            <button id="btn-logout" class="icon-btn hidden" title="Sair">
+                <i class="ph ph-sign-out"></i>
+            </button>
         </div>
     </header>
 
@@ -44,12 +47,12 @@
             <div class="stat-divider"></div>
             <div class="stat-box">
                 <span class="stat-value" id="stat-month">0</span>
-                <span class="stat-label">Este Mês</span>
+                <span class="stat-label">Mês</span>
             </div>
             <div class="stat-divider"></div>
             <div class="stat-box">
                 <span class="stat-value" id="stat-year">0</span>
-                <span class="stat-label">Este Ano</span>
+                <span class="stat-label">Ano</span>
             </div>
             <div class="stat-divider"></div>
             <div class="stat-box">
@@ -82,6 +85,31 @@
 
     <!-- Modals -->
 
+    <!-- LOGIN / REGISTER MODAL (Magic PIN) -->
+    <div id="modal-login" class="modal-backdrop">
+        <div class="modal glass-panel" style="max-width: 350px;">
+            <div class="modal-header">
+                <h3>Bem-vindo ao Jyclo</h3>
+            </div>
+            <div class="modal-body">
+                <p style="text-align: center; margin-bottom: 20px; font-size: 0.9rem; opacity: 0.8;">
+                    Digite seu email e um PIN de 4 dígitos. Se for novo, sua conta será criada agora!
+                </p>
+                <form id="form-login">
+                    <div class="form-group">
+                        <label>Email</label>
+                        <input type="email" id="login-email" placeholder="seu@email.com" required>
+                    </div>
+                    <div class="form-group">
+                        <label>PIN (4 dígitos)</label>
+                        <input type="password" id="login-pin" pattern="\d{4}" maxlength="4" placeholder="••••" required style="text-align: center; font-size: 1.5rem; letter-spacing: 0.5rem;">
+                    </div>
+                    <button type="submit" class="btn btn-primary" id="btn-confirm-login" style="width: 100%; margin-top: 10px;">Entrar</button>
+                </form>
+            </div>
+        </div>
+    </div>
+
     <!-- START FAST MODAL -->
     <div id="modal-start" class="modal-backdrop hidden">
         <div class="modal glass-panel">
@@ -94,11 +122,11 @@
                     <div class="form-group">
                         <label>Alimentação</label>
                         <select id="start-type">
-                            <option value="Refeição principal">Refeição Principal</option>
-                            <option value="Refeição leve">Refeição leve</option>
+                            <option value="Refeição">Refeição</option>
                             <option value="Lanche">Lanche</option>
-                            <option value="Guloseimas">Guloseimas</option>
-                            <option value="Bebidas">Bebidas</option>
+                            <option value="Colação">Colação</option>
+                            <option value="Guloseima">Guloseima</option>
+                            <option value="Bebida">Bebida</option>
                         </select>
                     </div>
                      <div class="form-group-inline">
@@ -131,13 +159,13 @@
                 <p class="celebration-text">Parabéns! Você alcançou um ciclo de <strong id="close-duration">0h</strong> </p>
                 <form id="form-close">
                     <div class="form-group">
-                        <label>Alimentação</label>
+                        <label>Desjejum</label>
                         <select id="close-type">
-                            <option value="Refeição principal">Refeição Principal</option>
-                            <option value="Refeição leve">Refeição leve</option>
+                            <option value="Refeição">Refeição</option>
                             <option value="Lanche">Lanche</option>
-                            <option value="Guloseimas">Guloseimas</option>
-                            <option value="Bebidas">Bebidas</option>
+                            <option value="Colação">Colação</option>
+                            <option value="Guloseima">Guloseima</option>
+                            <option value="Bebida">Bebida</option>
                         </select>
                     </div>
                     <div class="form-group-inline">

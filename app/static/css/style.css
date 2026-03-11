@@ -1,36 +1,43 @@
 /* --- DESIGN TOKENS --- */
 :root {
     /* Color Palette - Dark Mode Default (Premium Feel) */
-    --bg-base: #0f172a; /* tailwind slate-900 */
-    --bg-surface: rgba(30, 41, 59, 0.6); /* slate-800 with transparency for glass */
-    --bg-surface-hover: rgba(51, 65, 85, 0.8); /* slate-700 */
-    
+    --bg-base: #0f172a;
+    /* tailwind slate-900 */
+    --bg-surface: rgba(30, 41, 59, 0.6);
+    /* slate-800 with transparency for glass */
+    --bg-surface-hover: rgba(51, 65, 85, 0.8);
+    /* slate-700 */
+
     --text-primary: #f8fafc;
     --text-secondary: #94a3b8;
     --text-muted: #64748b;
-    
-    --brand-primary: #3b82f6; /* blue-500 */
+
+    --brand-primary: #3b82f6;
+    /* blue-500 */
     --brand-primary-hover: #2563eb;
-    
-    --accent-success: #10b981; /* emerald-500 */
+
+    --accent-success: #10b981;
+    /* emerald-500 */
     --accent-success-hover: #059669;
     --accent-success-alpha: rgba(16, 185, 129, 0.15);
-    
-    --accent-danger: #ef4444; /* red-500 */
+
+    --accent-danger: #ef4444;
+    /* red-500 */
     --accent-danger-hover: #dc2626;
-    
-    --accent-warning: #f59e0b; /* amber-500 */
-    
+
+    --accent-warning: #f59e0b;
+    /* amber-500 */
+
     --border-color: rgba(255, 255, 255, 0.08);
-    
+
     /* Layout */
     --radius-md: 12px;
     --radius-lg: 20px;
     --radius-full: 9999px;
-    
+
     --shadow-glass: 0 8px 32px 0 rgba(0, 0, 0, 0.3);
     --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
-    
+
     /* Typography */
     --font-sans: 'Outfit', sans-serif;
 }
@@ -40,11 +47,11 @@
     --bg-base: #f8fafc;
     --bg-surface: rgba(255, 255, 255, 0.7);
     --bg-surface-hover: rgba(255, 255, 255, 0.9);
-    
+
     --text-primary: #0f172a;
     --text-secondary: #475569;
     --text-muted: #94a3b8;
-    
+
     --border-color: rgba(0, 0, 0, 0.08);
     --shadow-glass: 0 8px 32px 0 rgba(31, 38, 135, 0.07);
 }
@@ -68,7 +75,8 @@ body {
 }
 
 /* Background gradient blobs to create depth */
-body::before, body::after {
+body::before,
+body::after {
     content: '';
     position: fixed;
     width: 600px;
@@ -118,6 +126,12 @@ body::after {
     border-bottom: 1px solid var(--border-color);
 }
 
+.header-actions {
+    display: flex;
+    align-items: center;
+    gap: 1px;
+}
+
 .logo {
     display: flex;
     align-items: center;
@@ -135,6 +149,8 @@ body::after {
     font-size: 1.2rem;
     color: var(--text-primary);
 }
+
+
 
 /* Glassmorphism Panel Base */
 .glass-panel {
@@ -461,7 +477,9 @@ label {
     color: var(--text-secondary);
 }
 
-input, textarea, select {
+input,
+textarea,
+select {
     width: 100%;
     background: rgba(0, 0, 0, 0.2);
     border: 1px solid var(--border-color);
@@ -473,13 +491,15 @@ input, textarea, select {
     transition: border-color 0.2s ease, box-shadow 0.2s ease;
 }
 
-[data-theme="light"] input, 
-[data-theme="light"] textarea, 
+[data-theme="light"] input,
+[data-theme="light"] textarea,
 [data-theme="light"] select {
     background: rgba(255, 255, 255, 0.5);
 }
 
-input:focus, textarea:focus, select:focus {
+input:focus,
+textarea:focus,
+select:focus {
     outline: none;
     border-color: var(--brand-primary);
     box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.2);
@@ -606,19 +626,39 @@ textarea {
     font-size: 1.25rem;
 }
 
-.toast.success i { color: var(--accent-success); }
-.toast.error i { color: var(--accent-danger); }
+.toast.success i {
+    color: var(--accent-success);
+}
+
+.toast.error i {
+    color: var(--accent-danger);
+}
 
 /* --- ANIMATIONS --- */
 @keyframes pulse {
-    0%, 100% { opacity: 1; }
-    50% { opacity: .5; }
+
+    0%,
+    100% {
+        opacity: 1;
+    }
+
+    50% {
+        opacity: .5;
+    }
 }
 
 @keyframes pulse-border {
-    0% { box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.4); }
-    70% { box-shadow: 0 0 0 10px rgba(16, 185, 129, 0); }
-    100% { box-shadow: 0 0 0 0 rgba(16, 185, 129, 0); }
+    0% {
+        box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.4);
+    }
+
+    70% {
+        box-shadow: 0 0 0 10px rgba(16, 185, 129, 0);
+    }
+
+    100% {
+        box-shadow: 0 0 0 0 rgba(16, 185, 129, 0);
+    }
 }
 
 /* Delete button fix inside card */

@@ -3,10 +3,12 @@ let cycles = [];
 let stats = {};
 let activeTimers = {}; // { id: intervalInstance }
 let selectedCycleId = null;
+let authToken = localStorage.getItem('jyclo_token');
 
 // --- DOM ELEMENTS ---
 const cardsContainer = document.getElementById('cards-container');
 const themeToggle = document.getElementById('theme-toggle');
+const btnLogout = document.getElementById('btn-logout');
 
 // Stats Elements
 const statLongest = document.getElementById('stat-longest');
@@ -15,6 +17,7 @@ const statYear = document.getElementById('stat-year');
 const statTotal = document.getElementById('stat-total');
 
 // Modals
+const modalLogin = document.getElementById('modal-login');
 const modalStart = document.getElementById('modal-start');
 const modalClose = document.getElementById('modal-close');
 const modalDelete = document.getElementById('modal-delete');
@@ -29,8 +32,18 @@ const closeButtons = document.querySelectorAll('.close-modal');
 // --- INIT ---
 document.addEventListener('DOMContentLoaded', () => {
     initTheme();
-    fetchCycles();
     setupEventListeners();
+    
+    if (authToken) {
+        // Logged in
+        modalLogin.classList.add('hidden');
+        btnLogout.classList.remove('hidden');
+        fetchCycles();
+    } else {
+        // Not logged in
+        modalLogin.classList.remove('hidden');
+        btnLogout.classList.add('hidden');
+    }
 });
 
 // --- THEME MANAGEMENT ---
@@ -58,22 +71,78 @@ function updateThemeIcon(theme) {
 }
 
 // --- API CALLS ---
+async function fetchWithAuth(url, options = {}) {
+    if(!options.headers) options.headers = {};
+    if(authToken) {
+         options.headers['Authorization'] = `Bearer ${authToken}`;
+    }
+    
+    const res = await fetch(url, options);
+    
+    if (res.status === 401) {
+        logout();
+        throw new Error("Unauthorized");
+    }
+    
+    return res;
+}
+
+async function loginUser(email, pin) {
+    try {
+        const res = await fetch('/api/auth/login', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ email, pin })
+        });
+        
+        if (res.ok) {
+            const data = await res.json();
+            authToken = data.access_token;
+            localStorage.setItem('jyclo_token', authToken);
+            
+            modalLogin.classList.add('hidden');
+            btnLogout.classList.remove('hidden');
+            showToast('Bem-vindo!', 'success');
+            fetchCycles();
+        } else {
+            const errorData = await res.json();
+            showToast(errorData.detail || 'Erro ao fazer login. Verifique o PIN.', 'error');
+        }
+    } catch (error) {
+        console.error(error);
+        showToast('Erro de conexão.', 'error');
+    }
+}
+
+function logout() {
+    authToken = null;
+    localStorage.removeItem('jyclo_token');
+    
+    cycles = [];
+    renderDashboard();
+    
+    modalLogin.classList.remove('hidden');
+    btnLogout.classList.add('hidden');
+}
+
 async function fetchCycles() {
     try {
-        const res = await fetch('/api/cycles');
+        const res = await fetchWithAuth('/api/cycles');
         const data = await res.json();
         cycles = data.checkpoints;
         stats = data.stats;
         renderDashboard();
     } catch (error) {
-        showToast('Erro ao carregar os dados.', 'error');
-        console.error(error);
+        if(error.message !== "Unauthorized") {
+            showToast('Erro ao carregar os dados.', 'error');
+            console.error(error);
+        }
     }
 }
 
 async function startCycle(payload) {
     try {
-        const res = await fetch('/api/cycles', {
+        const res = await fetchWithAuth('/api/cycles', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(payload)
@@ -84,13 +153,13 @@ async function startCycle(payload) {
             fetchCycles(); // Refresh all
         }
     } catch (error) {
-        showToast('Erro ao iniciar jejum.', 'error');
+         if(error.message !== "Unauthorized") showToast('Erro ao iniciar jejum.', 'error');
     }
 }
 
 async function closeCycle(id, payload) {
     try {
-        const res = await fetch(`/api/cycles/${id}/close`, {
+        const res = await fetchWithAuth(`/api/cycles/${id}/close`, {
             method: 'PATCH',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(payload)
@@ -101,20 +170,20 @@ async function closeCycle(id, payload) {
             fetchCycles();
         }
     } catch (error) {
-        showToast('Erro ao quebrar jejum.', 'error');
+        if(error.message !== "Unauthorized") showToast('Erro ao quebrar jejum.', 'error');
     }
 }
 
 async function deleteCycle(id) {
     try {
-        const res = await fetch(`/api/cycles/${id}`, { method: 'DELETE' });
+        const res = await fetchWithAuth(`/api/cycles/${id}`, { method: 'DELETE' });
         if (res.ok) {
             closeAllModals();
             showToast('Ciclo excluído.', 'success');
             fetchCycles();
         }
     } catch (error) {
-        showToast('Erro ao excluir ciclo.', 'error');
+        if(error.message !== "Unauthorized") showToast('Erro ao excluir ciclo.', 'error');
     }
 }
 
@@ -251,6 +320,16 @@ function updateLiveDuration(id, startTimeStr) {
 
 // --- EVENT LISTENERS & MODALS ---
 function setupEventListeners() {
+    // Auth & Header
+    btnLogout.addEventListener('click', logout);
+
+    document.getElementById('form-login').addEventListener('submit', (e) => {
+        e.preventDefault();
+        const email = document.getElementById('login-email').value;
+        const pin = document.getElementById('login-pin').value;
+        loginUser(email, pin);
+    });
+
     // Start Fast setup
     btnStartFast.addEventListener('click', openStartModal);
 

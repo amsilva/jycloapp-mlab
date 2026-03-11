@@ -1,17 +1,73 @@
 from fastapi import FastAPI, HTTPException, Request, Depends, status
 from fastapi.responses import HTMLResponse
 from fastapi.staticfiles import StaticFiles
+from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from sqlalchemy.orm import Session
 from sqlalchemy import func
-from datetime import datetime
+from datetime import datetime, timedelta
+from passlib.context import CryptContext
+from jose import JWTError, jwt
+from typing import Optional
 
 from .database import SessionLocal, engine
-from .models import Base, Checkpoint
+from .models import Base, Checkpoint, User
 from . import schema
 from fastapi.templating import Jinja2Templates
 
 app = FastAPI(title="Jyclo API")
 
+# --- Security Config ---
+SECRET_KEY = "super-secret-jyclo-key" # In production, use env var!
+ALGORITHM = "HS256"
+ACCESS_TOKEN_EXPIRE_DAYS = 30
+
+pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
+security = HTTPBearer()
+
+def verify_pin(plain_pin, hashed_pin):
+    return pwd_context.verify(plain_pin, hashed_pin)
+
+def get_pin_hash(pin):
+    return pwd_context.hash(pin)
+
+def create_access_token(data: dict, expires_delta: Optional[timedelta] = None):
+    to_encode = data.copy()
+    if expires_delta:
+        expire = datetime.utcnow() + expires_delta
+    else:
+        expire = datetime.utcnow() + timedelta(days=ACCESS_TOKEN_EXPIRE_DAYS)
+    to_encode.update({"exp": expire})
+    encoded_jwt = jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
+    return encoded_jwt
+
+# --- Dependencies ---
+def get_db():
+    db = SessionLocal()
+    try:
+        yield db
+    finally:
+        db.close()
+
+def get_current_user(credentials: HTTPAuthorizationCredentials = Depends(security), db: Session = Depends(get_db)):
+    token = credentials.credentials
+    credentials_exception = HTTPException(
+        status_code=status.HTTP_401_UNAUTHORIZED,
+        detail="Could not validate credentials",
+        headers={"WWW-Authenticate": "Bearer"},
+    )
+    try:
+        payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
+        user_id: str = payload.get("sub")
+        if user_id is None:
+            raise credentials_exception
+    except JWTError:
+        raise credentials_exception
+        
+    user = db.query(User).filter(User.id == int(user_id)).first()
+    if user is None:
+        raise credentials_exception
+    return user
+    
 Base.metadata.create_all(bind=engine)
 
 app.mount("/static", StaticFiles(directory="app/static"), name="static")
@@ -31,17 +87,47 @@ def index(request: Request):
     """
     return templates.TemplateResponse("index.html", {"request": request})
 
+# ----------------- AUTH ENDPOINTS -----------------
+
+@app.post("/api/auth/login", response_model=dict)
+def login_or_register(auth_data: schema.UserAuth, db: Session = Depends(get_db)):
+    """
+    Unified Endpoint: Magic PIN.
+    If email exists, checks PIN. If email doesn't exist, registers user.
+    Returns: JWT Token.
+    """
+    if len(auth_data.pin) != 4 or not auth_data.pin.isdigit():
+        raise HTTPException(status_code=400, detail="PIN deve conter exatamente 4 dígitos numéricos.")
+
+    user = db.query(User).filter(User.email == auth_data.email).first()
+    
+    if not user:
+        # Register new user
+        novo_user = User(email=auth_data.email, pin_hash=get_pin_hash(auth_data.pin))
+        db.add(novo_user)
+        db.commit()
+        db.refresh(novo_user)
+        user = novo_user
+    else:
+        # Verify existing user
+        if not verify_pin(auth_data.pin, user.pin_hash):
+            raise HTTPException(status_code=401, detail="PIN incorreto")
+
+    # Issue token
+    access_token = create_access_token(data={"sub": str(user.id)})
+    return {"access_token": access_token, "token_type": "bearer"}
+
 # ----------------- API ENDPOINTS -----------------
 
 @app.get("/api/cycles", response_model=dict)
-def get_cycles(db: Session = Depends(get_db)):
+def get_cycles(db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
     """
-    Returns all cycles and calculated statistics.
+    Returns all cycles and calculated statistics for the logged-in user.
     """
     now = datetime.utcnow()
     
     # All checkpoints ordered by start date descending
-    checkpoints = db.query(Checkpoint).order_by(Checkpoint.data_inicio.desc()).all()
+    checkpoints = db.query(Checkpoint).filter(Checkpoint.user_id == current_user.id).order_by(Checkpoint.data_inicio.desc()).all()
     
     # Calculate stats
     total = len(checkpoints)
@@ -50,7 +136,7 @@ def get_cycles(db: Session = Depends(get_db)):
     total_ano = sum(1 for c in checkpoints if c.data_inicio.year == now.year)
     
     # Longest window
-    longest_window = db.query(func.max(Checkpoint.duracao_horas)).scalar()
+    longest_window = db.query(func.max(Checkpoint.duracao_horas)).filter(Checkpoint.user_id == current_user.id).scalar()
     longest_window = longest_window if longest_window else 0.0
 
     return {
@@ -64,11 +150,12 @@ def get_cycles(db: Session = Depends(get_db)):
     }
 
 @app.post("/api/cycles", response_model=schema.CheckpointResponse, status_code=status.HTTP_201_CREATED)
-def create_cycle(cycle: schema.CheckpointCreate, db: Session = Depends(get_db)):
+def create_cycle(cycle: schema.CheckpointCreate, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
     """
-    Starts a new fasting cycle.
+    Starts a new fasting cycle for the logged-in user.
     """
     novo = Checkpoint(
+        user_id=current_user.id,
         data_inicio=cycle.data_inicio,
         comentario_inicio=cycle.comentario_inicio,
         status="ativo"
@@ -79,11 +166,14 @@ def create_cycle(cycle: schema.CheckpointCreate, db: Session = Depends(get_db)):
     return novo
 
 @app.patch("/api/cycles/{checkpoint_id}/close", response_model=schema.CheckpointResponse)
-def close_cycle(checkpoint_id: int, closing_data: schema.CheckpointClose, db: Session = Depends(get_db)):
+def close_cycle(checkpoint_id: int, closing_data: schema.CheckpointClose, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
     """
     Closes an active fasting cycle.
     """
-    checkpoint = db.query(Checkpoint).filter(Checkpoint.id == checkpoint_id).first()
+    checkpoint = db.query(Checkpoint).filter(
+        Checkpoint.id == checkpoint_id, 
+        Checkpoint.user_id == current_user.id
+    ).first()
     
     if not checkpoint:
         raise HTTPException(status_code=404, detail="Checkpoint não encontrado")
@@ -114,11 +204,15 @@ def close_cycle(checkpoint_id: int, closing_data: schema.CheckpointClose, db: Se
     return checkpoint
 
 @app.delete("/api/cycles/{checkpoint_id}", status_code=status.HTTP_204_NO_CONTENT)
-def delete_cycle(checkpoint_id: int, db: Session = Depends(get_db)):
+def delete_cycle(checkpoint_id: int, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
     """
     Deletes a cycle completely from the system.
     """
-    checkpoint = db.query(Checkpoint).filter(Checkpoint.id == checkpoint_id).first()
+    checkpoint = db.query(Checkpoint).filter(
+        Checkpoint.id == checkpoint_id,
+        Checkpoint.user_id == current_user.id
+    ).first()
+    
     if not checkpoint:
         raise HTTPException(status_code=404, detail="Checkpoint não encontrado")
     
