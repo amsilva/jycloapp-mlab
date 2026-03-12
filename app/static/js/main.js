@@ -12,9 +12,11 @@ const btnLogout = document.getElementById('btn-logout');
 
 // Stats Elements
 const statLongest = document.getElementById('stat-longest');
-const statStreak = document.getElementById('stat-streak');
+const statMonth = document.getElementById('stat-month');
+const statYear = document.getElementById('stat-year');
 const statTotal = document.getElementById('stat-total');
 const heatmapContainer = document.getElementById('heatmap-container');
+
 
 // Modals
 const modalLogin = document.getElementById('modal-login');
@@ -200,12 +202,10 @@ async function deleteCycle(id) {
 function renderDashboard() {
     // 1. Render Stats
     statTotal.textContent = stats.total;
+    statMonth.textContent = stats.total_mes;
+    statYear.textContent = stats.total_ano;
     statLongest.textContent = stats.longest_window > 0 ? `${stats.longest_window}h` : '0h';
     
-    // Calculate frequency (days with activity in last 30 days)
-    const activeDaysCount = calculateFrequency(cycles);
-    statStreak.textContent = activeDaysCount;
-
     // 2. Render Heatmap
     renderHeatmap(cycles);
 
