@@ -165,9 +165,16 @@ body::after {
 /* Stats Panel */
 .stats-panel {
     display: flex;
-    justify-content: space-between;
+    flex-direction: column;
+    gap: 20px;
     padding: 20px;
     margin-bottom: 32px;
+}
+
+.stats-top {
+    display: flex;
+    justify-content: space-between;
+    width: 100%;
 }
 
 .stat-box {
@@ -196,6 +203,67 @@ body::after {
     background-color: var(--border-color);
     margin: 0 10px;
 }
+
+/* Heatmap Matriz GitHub Style */
+.heatmap-section {
+    width: 100%;
+    margin-top: 10px;
+}
+
+.heatmap-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 8px;
+    font-size: 0.75rem;
+    color: var(--text-secondary);
+}
+
+.heatmap-container {
+    display: grid;
+    grid-auto-flow: column;
+    grid-template-rows: repeat(7, 1fr);
+    gap: 3px;
+    overflow-x: auto;
+    padding-bottom: 5px;
+    scrollbar-width: thin;
+    scrollbar-color: var(--border-color) transparent;
+}
+
+.heatmap-container::-webkit-scrollbar {
+    height: 4px;
+}
+
+.heatmap-container::-webkit-scrollbar-thumb {
+    background: var(--border-color);
+    border-radius: 10px;
+}
+
+.hm-day {
+    width: 10px;
+    height: 10px;
+    border-radius: 2px;
+    background: rgba(255, 255, 255, 0.05);
+    transition: transform 0.2s ease;
+}
+
+.hm-day:hover {
+    transform: scale(1.3);
+    z-index: 10;
+}
+
+/* Heatmap Levels - Using CSS variables for better theme integration */
+.hm-level-0 { background: rgba(0, 0, 0, 0.2); }
+.hm-level-1 { background: #0e4429; } /* GitHub low */
+.hm-level-2 { background: #006d32; }
+.hm-level-3 { background: #26a641; }
+.hm-level-4 { background: #39d353; } /* GitHub high */
+
+[data-theme="light"] .hm-level-0 { background: #ebedf0; }
+[data-theme="light"] .hm-level-1 { background: #9be9a8; }
+[data-theme="light"] .hm-level-2 { background: #40c463; }
+[data-theme="light"] .hm-level-3 { background: #30a14e; }
+[data-theme="light"] .hm-level-4 { background: #216e39; }
 
 /* Timeline/Cards */
 .timeline-header {

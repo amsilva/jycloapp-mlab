@@ -12,9 +12,9 @@ const btnLogout = document.getElementById('btn-logout');
 
 // Stats Elements
 const statLongest = document.getElementById('stat-longest');
-const statMonth = document.getElementById('stat-month');
-const statYear = document.getElementById('stat-year');
+const statStreak = document.getElementById('stat-streak');
 const statTotal = document.getElementById('stat-total');
+const heatmapContainer = document.getElementById('heatmap-container');
 
 // Modals
 const modalLogin = document.getElementById('modal-login');
@@ -200,9 +200,14 @@ async function deleteCycle(id) {
 function renderDashboard() {
     // 1. Render Stats
     statTotal.textContent = stats.total;
-    statMonth.textContent = stats.total_mes;
-    statYear.textContent = stats.total_ano;
     statLongest.textContent = stats.longest_window > 0 ? `${stats.longest_window}h` : '0h';
+    
+    // Calculate frequency (days with activity in last 30 days)
+    const activeDaysCount = calculateFrequency(cycles);
+    statStreak.textContent = activeDaysCount;
+
+    // 2. Render Heatmap
+    renderHeatmap(cycles);
 
     // Disable start button if there's an active cycle
     const hasActive = cycles.some(c => c.status === 'ativo');
@@ -447,6 +452,63 @@ function openCloseModal(cycle) {
 function openDeleteModal(id) {
     selectedCycleId = id;
     modalDelete.classList.remove('hidden');
+}
+
+function calculateFrequency(cyclesList) {
+    const thirtyDaysAgo = new Date();
+    thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+    
+    const activeDays = new Set();
+    cyclesList.forEach(c => {
+        if (c.status === 'fechado') {
+            const date = new Date(c.data_inicio + (c.data_inicio.endsWith('Z') ? '' : 'Z'));
+            if (date >= thirtyDaysAgo) {
+                activeDays.add(date.toISOString().split('T')[0]);
+            }
+        }
+    });
+    return activeDays.size;
+}
+
+function renderHeatmap(cyclesList) {
+    heatmapContainer.innerHTML = '';
+    const today = new Date();
+    
+    // We want to show ~22 weeks (154 days) to fill the screen
+    const daysToShow = 154;
+    const startDate = new Date();
+    startDate.setDate(today.getDate() - daysToShow + 1);
+
+    // Map activity per day { 'YYYY-MM-DD': totalHours }
+    const dailyActivity = {};
+    cyclesList.forEach(c => {
+        if (c.status === 'fechado' && c.duracao_horas) {
+            const dateKey = new Date(c.data_inicio + (c.data_inicio.endsWith('Z') ? '' : 'Z')).toISOString().split('T')[0];
+            dailyActivity[dateKey] = (dailyActivity[dateKey] || 0) + parseFloat(c.duracao_horas);
+        }
+    });
+
+    for (let i = 0; i < daysToShow; i++) {
+        const d = new Date(startDate);
+        d.setDate(startDate.getDate() + i);
+        const dateKey = d.toISOString().split('T')[0];
+        const hours = dailyActivity[dateKey] || 0;
+
+        const dayEl = document.createElement('div');
+        dayEl.className = 'hm-day';
+        
+        // Define level based on hours
+        let level = 0;
+        if (hours > 0 && hours <= 6) level = 1;
+        else if (hours > 6 && hours <= 12) level = 2;
+        else if (hours > 12 && hours <= 18) level = 3;
+        else if (hours > 18) level = 4;
+
+        dayEl.classList.add(`hm-level-${level}`);
+        dayEl.title = `${dateKey}: ${hours.toFixed(1)}h de jejum`;
+        
+        heatmapContainer.appendChild(dayEl);
+    }
 }
 
 function closeAllModals() {
