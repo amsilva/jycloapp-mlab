@@ -460,8 +460,10 @@ function calculateFrequency(cyclesList) {
     
     const activeDays = new Set();
     cyclesList.forEach(c => {
-        if (c.status === 'fechado') {
-            const date = new Date(c.data_inicio + (c.data_inicio.endsWith('Z') ? '' : 'Z'));
+        if (c.status === 'encerrado') { // Backend uses 'encerrado'
+            const startTimeStr = c.data_inicio;
+            const isoStr = startTimeStr + (startTimeStr.endsWith('Z') ? '' : 'Z');
+            const date = new Date(isoStr);
             if (date >= thirtyDaysAgo) {
                 activeDays.add(date.toISOString().split('T')[0]);
             }
@@ -482,9 +484,9 @@ function renderHeatmap(cyclesList) {
     // Map activity per day { 'YYYY-MM-DD': totalHours }
     const dailyActivity = {};
     cyclesList.forEach(c => {
-        if (c.status === 'fechado' && c.duracao_horas) {
+        // Correct status is 'encerrado'
+        if (c.status === 'encerrado' && c.duracao_horas) {
             // Get local date part YYYY-MM-DD from data_inicio string
-            // Usually format is "YYYY-MM-DDTHH:MM:SS..."
             const dateKey = c.data_inicio.split('T')[0];
             dailyActivity[dateKey] = (dailyActivity[dateKey] || 0) + parseFloat(c.duracao_horas);
         }
