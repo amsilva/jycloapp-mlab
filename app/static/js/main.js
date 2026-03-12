@@ -1,7 +1,7 @@
 // --- STATE ---
 let cycles = [];
 let stats = {};
-let globalTimerInstance = null;
+let activeTimers = {}; // { id: intervalInstance }
 let selectedCycleId = null;
 let authToken = localStorage.getItem('jyclo_token');
 
@@ -224,11 +224,9 @@ function renderDashboard() {
 function renderCards() {
     cardsContainer.innerHTML = '';
     
-    // Clear existing timer if any
-    if (globalTimerInstance) {
-        clearInterval(globalTimerInstance);
-        globalTimerInstance = null;
-    }
+    // Clear old intervals
+    Object.values(activeTimers).forEach(clearInterval);
+    activeTimers = {};
 
     if (cycles.length === 0) {
         cardsContainer.innerHTML = `
@@ -302,53 +300,43 @@ function renderCards() {
         });
 
         cardsContainer.appendChild(card);
-    });
 
-    // Start a single global timer if there's any active cycle
-    const hasActiveNow = cycles.some(c => c.status === 'ativo');
-    if (hasActiveNow) {
-        startGlobalTimer();
-    }
-}
-
-function startGlobalTimer() {
-    // Initial update
-    updateActiveTimers();
-    // Set interval
-    globalTimerInstance = setInterval(updateActiveTimers, 1000);
-}
-
-function updateActiveTimers() {
-    const activeElements = document.querySelectorAll('.card-duration[data-status="ativo"]');
-    if (activeElements.length === 0 && globalTimerInstance) {
-        clearInterval(globalTimerInstance);
-        globalTimerInstance = null;
-        return;
-    }
-
-    const now = new Date();
-    activeElements.forEach(el => {
-        const startTimeStr = el.getAttribute('data-start');
-        if (!startTimeStr) return;
-
-        // Force UTC parsing
-        let isoStr = startTimeStr;
-        if (!isoStr.endsWith('Z') && !isoStr.includes('+') && !isoStr.includes('-')) {
-            isoStr += 'Z';
+        // Start real-time counter if active
+        if (cycle.status === 'ativo') {
+            updateLiveDuration(cycle.id, cycle.data_inicio);
+            activeTimers[cycle.id] = setInterval(() => {
+                updateLiveDuration(cycle.id, cycle.data_inicio);
+            }, 1000);
+            console.log(`Timer MASTER ativo iniciado para o ciclo ${cycle.id}`);
         }
-
-        const startObj = new Date(isoStr);
-        let diffMs = now.getTime() - startObj.getTime();
-        
-        if (diffMs < 0) diffMs = 0;
-
-        const hrs = Math.floor(diffMs / 3600000);
-        const mins = Math.floor((diffMs % 3600000) / 60000);
-        const secs = Math.floor((diffMs % 60000) / 1000);
-
-        const pad = (n) => String(n).padStart(2, '0');
-        el.textContent = `${pad(hrs)}:${pad(mins)}:${pad(secs)}`;
     });
+}
+
+function updateLiveDuration(id, startTimeStr) {
+    const el = document.getElementById(`duration-${id}`);
+    if (!el) return;
+
+    // Force UTC parsing
+    let isoStr = startTimeStr;
+    if (!isoStr.endsWith('Z') && !isoStr.includes('+') && !isoStr.includes('-')) {
+        isoStr += 'Z';
+    } else if (isoStr.includes(' ')) {
+        // Handle potential "YYYY-MM-DD HH:MM:SS" from some DBs
+        isoStr = isoStr.replace(' ', 'T') + 'Z';
+    }
+
+    const startObj = new Date(isoStr);
+    const now = new Date();
+    
+    let diffMs = now.getTime() - startObj.getTime();
+    if (diffMs < 0) diffMs = 0;
+
+    const hrs = Math.floor(diffMs / 3600000);
+    const mins = Math.floor((diffMs % 3600000) / 60000);
+    const secs = Math.floor((diffMs % 60000) / 1000);
+
+    const pad = (n) => String(n).padStart(2, '0');
+    el.textContent = `${pad(hrs)}:${pad(mins)}:${pad(secs)}`;
 }
 
 
