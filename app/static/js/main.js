@@ -310,14 +310,25 @@ function updateLiveDuration(id, startTimeStr) {
     const el = document.getElementById(`duration-${id}`);
     if (!el) return;
 
-    // Fastapi returns isoformat without Z, Javascript assumes local time, we must parse correctly
-    const startObj = new Date(startTimeStr + (startTimeStr.endsWith('Z') ? '' : 'Z'));
+    // Ensure we parse as UTC by adding Z if missing
+    let isoStr = startTimeStr;
+    if (!isoStr.endsWith('Z') && !isoStr.includes('+') && !isoStr.includes('-')) {
+        isoStr += 'Z';
+    }
+    
+    const startObj = new Date(isoStr);
     const now = new Date();
     
-    let diffMs = now - startObj;
-    if(diffMs < 0) diffMs = 0; // prevent negative if clocks slightly off
+    // Use getTime() for safer subtraction
+    let diffMs = now.getTime() - startObj.getTime();
+    
+    // If negative, it might be a small clock drift between client/server
+    // If it's very negative (hours), there's a timezone issue
+    if (diffMs < 0) {
+        console.warn(`Timer drift detected for cycle ${id}: ${diffMs}ms`);
+        diffMs = 0; 
+    }
 
-    // calculate H:M:S
     const hrs = Math.floor(diffMs / 3600000);
     const mins = Math.floor((diffMs % 3600000) / 60000);
     const secs = Math.floor((diffMs % 60000) / 1000);
