@@ -1,7 +1,7 @@
 // --- STATE ---
 let cycles = [];
 let stats = {};
-let activeTimers = {}; // { id: intervalInstance }
+let globalTimerInstance = null;
 let selectedCycleId = null;
 let authToken = localStorage.getItem('jyclo_token');
 
@@ -219,9 +219,11 @@ function renderDashboard() {
 function renderCards() {
     cardsContainer.innerHTML = '';
     
-    // Clear old intervals
-    Object.values(activeTimers).forEach(clearInterval);
-    activeTimers = {};
+    // Clear existing timer if any
+    if (globalTimerInstance) {
+        clearInterval(globalTimerInstance);
+        globalTimerInstance = null;
+    }
 
     if (cycles.length === 0) {
         cardsContainer.innerHTML = `
@@ -261,7 +263,7 @@ function renderCards() {
                 <span class="card-date">${formattedDate} às ${formatTime}</span>
             </div>
             <div class="card-main">
-                <div class="card-duration" id="duration-${cycle.id}">
+                <div class="card-duration" id="duration-${cycle.id}" data-start="${cycle.data_inicio}" data-status="${cycle.status}">
                     ${isAtivo ? '00:00:00' : `${cycle.duracao_horas}h`}
                 </div>
                 
@@ -295,46 +297,53 @@ function renderCards() {
         });
 
         cardsContainer.appendChild(card);
-
-        // Start real-time counter if active
-        if (isAtivo) {
-            updateLiveDuration(cycle.id, cycle.data_inicio);
-            activeTimers[cycle.id] = setInterval(() => {
-                updateLiveDuration(cycle.id, cycle.data_inicio);
-            }, 1000);
-        }
     });
+
+    // Start a single global timer if there's any active cycle
+    const hasActiveNow = cycles.some(c => c.status === 'ativo');
+    if (hasActiveNow) {
+        startGlobalTimer();
+    }
 }
 
-function updateLiveDuration(id, startTimeStr) {
-    const el = document.getElementById(`duration-${id}`);
-    if (!el) return;
+function startGlobalTimer() {
+    // Initial update
+    updateActiveTimers();
+    // Set interval
+    globalTimerInstance = setInterval(updateActiveTimers, 1000);
+}
 
-    // Ensure we parse as UTC by adding Z if missing
-    let isoStr = startTimeStr;
-    if (!isoStr.endsWith('Z') && !isoStr.includes('+') && !isoStr.includes('-')) {
-        isoStr += 'Z';
+function updateActiveTimers() {
+    const activeElements = document.querySelectorAll('.card-duration[data-status="ativo"]');
+    if (activeElements.length === 0 && globalTimerInstance) {
+        clearInterval(globalTimerInstance);
+        globalTimerInstance = null;
+        return;
     }
-    
-    const startObj = new Date(isoStr);
+
     const now = new Date();
-    
-    // Use getTime() for safer subtraction
-    let diffMs = now.getTime() - startObj.getTime();
-    
-    // If negative, it might be a small clock drift between client/server
-    // If it's very negative (hours), there's a timezone issue
-    if (diffMs < 0) {
-        console.warn(`Timer drift detected for cycle ${id}: ${diffMs}ms`);
-        diffMs = 0; 
-    }
+    activeElements.forEach(el => {
+        const startTimeStr = el.getAttribute('data-start');
+        if (!startTimeStr) return;
 
-    const hrs = Math.floor(diffMs / 3600000);
-    const mins = Math.floor((diffMs % 3600000) / 60000);
-    const secs = Math.floor((diffMs % 60000) / 1000);
+        // Force UTC parsing
+        let isoStr = startTimeStr;
+        if (!isoStr.endsWith('Z') && !isoStr.includes('+') && !isoStr.includes('-')) {
+            isoStr += 'Z';
+        }
 
-    const pad = (n) => String(n).padStart(2, '0');
-    el.textContent = `${pad(hrs)}:${pad(mins)}:${pad(secs)}`;
+        const startObj = new Date(isoStr);
+        let diffMs = now.getTime() - startObj.getTime();
+        
+        if (diffMs < 0) diffMs = 0;
+
+        const hrs = Math.floor(diffMs / 3600000);
+        const mins = Math.floor((diffMs % 3600000) / 60000);
+        const secs = Math.floor((diffMs % 60000) / 1000);
+
+        const pad = (n) => String(n).padStart(2, '0');
+        el.textContent = `${pad(hrs)}:${pad(mins)}:${pad(secs)}`;
+    });
 }
 
 
