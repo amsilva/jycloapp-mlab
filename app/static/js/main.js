@@ -243,7 +243,7 @@ function renderCards() {
         card.className = `cycle-card glass-panel ${cycle.status === 'ativo' ? 'active' : ''}`;
         
         const isAtivo = cycle.status === 'ativo';
-        const startDate = new Date(`${cycle.data_inicio}Z`); // ensure UTC parsed correctly depending on backend format
+        const startDate = toUTCDate(cycle.data_inicio);
         const formattedDate = startDate.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric' });
         const formatTime = startDate.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
 
@@ -307,7 +307,6 @@ function renderCards() {
             activeTimers[cycle.id] = setInterval(() => {
                 updateLiveDuration(cycle.id, cycle.data_inicio);
             }, 1000);
-            console.log(`Timer MASTER ativo iniciado para o ciclo ${cycle.id}`);
         }
     });
 }
@@ -316,16 +315,7 @@ function updateLiveDuration(id, startTimeStr) {
     const el = document.getElementById(`duration-${id}`);
     if (!el) return;
 
-    // Force UTC parsing
-    let isoStr = startTimeStr;
-    if (!isoStr.endsWith('Z') && !isoStr.includes('+') && !isoStr.includes('-')) {
-        isoStr += 'Z';
-    } else if (isoStr.includes(' ')) {
-        // Handle potential "YYYY-MM-DD HH:MM:SS" from some DBs
-        isoStr = isoStr.replace(' ', 'T') + 'Z';
-    }
-
-    const startObj = new Date(isoStr);
+    const startObj = toUTCDate(startTimeStr);
     const now = new Date();
     
     let diffMs = now.getTime() - startObj.getTime();
@@ -337,6 +327,26 @@ function updateLiveDuration(id, startTimeStr) {
 
     const pad = (n) => String(n).padStart(2, '0');
     el.textContent = `${pad(hrs)}:${pad(mins)}:${pad(secs)}`;
+    
+    // Tiny visual cue it's running
+    if (secs % 2 === 0) {
+        el.style.opacity = '1';
+    } else {
+        el.style.opacity = '0.9';
+    }
+}
+
+function toUTCDate(dateStr) {
+    if (!dateStr) return new Date();
+    // If it has timezone info, browser handles it
+    if (dateStr.includes('Z') || dateStr.includes('+')) {
+        return new Date(dateStr);
+    }
+    // Most naive dates from FastAPI/Python look like YYYY-MM-DDTHH:MM:SS...
+    // We force UTC by adding Z
+    let iso = dateStr.replace(' ', 'T');
+    if (!iso.includes('Z')) iso += 'Z';
+    return new Date(iso);
 }
 
 
