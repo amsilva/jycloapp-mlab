@@ -244,20 +244,14 @@ body::after {
     height: 10px;
     border-radius: 2px;
     background: rgba(255, 255, 255, 0.05);
-    transition: transform 0.2s ease;
 }
 
-.hm-day:hover {
-    transform: scale(1.3);
-    z-index: 10;
-}
-
-/* Heatmap Levels - Using CSS variables for better theme integration */
+/* Heatmap Levels - Tones of Green */
 .hm-level-0 { background: rgba(0, 0, 0, 0.2); }
-.hm-level-1 { background: #0e4429; } /* GitHub low */
-.hm-level-2 { background: #006d32; }
-.hm-level-3 { background: #26a641; }
-.hm-level-4 { background: #39d353; } /* GitHub high */
+.hm-level-1 { background: #0e4429; opacity: 0.6; } /* >12h - Subtle */
+.hm-level-2 { background: #006d32; }               /* >16h - Medium */
+.hm-level-3 { background: #26a641; }               /* >18h - Strong */
+.hm-level-4 { background: #39d353; box-shadow: 0 0 5px rgba(57, 211, 83, 0.3); } /* >22h - Highlight */
 
 [data-theme="light"] .hm-level-0 { background: #ebedf0; }
 [data-theme="light"] .hm-level-1 { background: #9be9a8; }

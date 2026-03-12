@@ -483,7 +483,9 @@ function renderHeatmap(cyclesList) {
     const dailyActivity = {};
     cyclesList.forEach(c => {
         if (c.status === 'fechado' && c.duracao_horas) {
-            const dateKey = new Date(c.data_inicio + (c.data_inicio.endsWith('Z') ? '' : 'Z')).toISOString().split('T')[0];
+            // Get local date part YYYY-MM-DD from data_inicio string
+            // Usually format is "YYYY-MM-DDTHH:MM:SS..."
+            const dateKey = c.data_inicio.split('T')[0];
             dailyActivity[dateKey] = (dailyActivity[dateKey] || 0) + parseFloat(c.duracao_horas);
         }
     });
@@ -497,15 +499,15 @@ function renderHeatmap(cyclesList) {
         const dayEl = document.createElement('div');
         dayEl.className = 'hm-day';
         
-        // Define level based on hours
+        // Define level based on hours (User suggested thresholds)
         let level = 0;
-        if (hours > 0 && hours <= 6) level = 1;
-        else if (hours > 6 && hours <= 12) level = 2;
-        else if (hours > 12 && hours <= 18) level = 3;
-        else if (hours > 18) level = 4;
+        if (hours >= 12 && hours < 16) level = 1;
+        else if (hours >= 16 && hours < 18) level = 2;
+        else if (hours >= 18 && hours < 22) level = 3;
+        else if (hours >= 22) level = 4;
 
         dayEl.classList.add(`hm-level-${level}`);
-        dayEl.title = `${dateKey}: ${hours.toFixed(1)}h de jejum`;
+        // No interaction/title requested anymore
         
         heatmapContainer.appendChild(dayEl);
     }
