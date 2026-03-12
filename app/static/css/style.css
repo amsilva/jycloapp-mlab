@@ -248,10 +248,10 @@ body::after {
 
 /* Heatmap Levels - Tones of Green */
 .hm-level-0 { background: rgba(0, 0, 0, 0.2); }
-.hm-level-1 { background: #0e4429; opacity: 0.6; } /* >12h - Subtle */
-.hm-level-2 { background: #006d32; }               /* >16h - Medium */
-.hm-level-3 { background: #26a641; }               /* >18h - Strong */
-.hm-level-4 { background: #39d353; box-shadow: 0 0 5px rgba(57, 211, 83, 0.3); } /* >22h - Highlight */
+.hm-level-1 { background: #006d32; opacity: 0.6; } /* >12h - Subtle */
+.hm-level-2 { background: #30a14e; }               /* >16h - Medium */
+.hm-level-3 { background: #39d353; }               /* >18h - Strong */
+.hm-level-4 { background: #9be9a8; box-shadow: 0 0 5px rgba(57, 211, 83, 0.3); } /* >22h - Highlight */
 
 [data-theme="light"] .hm-level-0 { background: #ebedf0; }
 [data-theme="light"] .hm-level-1 { background: #9be9a8; }
