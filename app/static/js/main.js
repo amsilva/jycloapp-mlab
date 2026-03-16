@@ -267,7 +267,7 @@ function renderCards() {
             </div>
             <div class="card-main">
                 <div class="card-duration" id="duration-${cycle.id}" data-start="${cycle.data_inicio}" data-status="${cycle.status}">
-                    ${isAtivo ? '00:00:00' : `${cycle.duracao_horas}h`}
+                    ${isAtivo ? '00:00' : `${cycle.duracao_horas}h`}
                 </div>
                 
                 <div class="card-details">
@@ -326,14 +326,11 @@ function updateLiveDuration(id, startTimeStr) {
     const secs = Math.floor((diffMs % 60000) / 1000);
 
     const pad = (n) => String(n).padStart(2, '0');
-    el.textContent = `${pad(hrs)}:${pad(mins)}:${pad(secs)}`;
     
-    // Tiny visual cue it's running
-    if (secs % 2 === 0) {
-        el.style.opacity = '1';
-    } else {
-        el.style.opacity = '0.9';
-    }
+    // Tiny visual cue it's running: blink the colon
+    const opacity = (secs % 2 === 0) ? '1' : '0.5';
+    el.innerHTML = `${pad(hrs)}<span style="opacity: ${opacity}; transition: opacity 0.2s;">:</span>${pad(mins)}`;
+    
 }
 
 function toUTCDate(dateStr) {
@@ -423,9 +420,10 @@ function openStartModal() {
     // defaults
     document.getElementById('start-type').selectedIndex = 0;
     
-    // Set current local time
+    // Set current local date and time
     const now = new Date();
-    document.getElementById('start-date').value = now.toISOString().split('T')[0];
+    const localDate = now.toLocaleDateString('sv-SE').split(' ')[0]; // YYYY-MM-DD
+    document.getElementById('start-date').value = localDate;
     document.getElementById('start-time').value = now.toTimeString().split(' ')[0].slice(0,5);
 
     modalStart.classList.remove('hidden');
@@ -435,9 +433,10 @@ function openCloseModal(cycle) {
     selectedCycleId = cycle.id;
     document.getElementById('close-type').selectedIndex = 0;
     
-    // Set current local time for closing
+    // Set current local date and time for closing
     const now = new Date();
-    document.getElementById('close-date').value = now.toISOString().split('T')[0];
+    const localDate = now.toLocaleDateString('sv-SE').split(' ')[0]; // YYYY-MM-DD
+    document.getElementById('close-date').value = localDate;
     document.getElementById('close-time').value = now.toTimeString().split(' ')[0].slice(0,5);
     
     // Copy the current duration into modal
