@@ -78,13 +78,6 @@ Base.metadata.create_all(bind=engine)
 app.mount("/static", StaticFiles(directory=str(APP_DIR / "static")), name="static")
 templates = Jinja2Templates(directory=str(APP_DIR / "templates"))
 
-def get_db():
-    db = SessionLocal()
-    try:
-        yield db
-    finally:
-        db.close()
-
 @app.get("/", response_class=HTMLResponse)
 def index(request: Request):
     """
