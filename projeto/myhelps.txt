@@ -1,0 +1,15 @@
+# Deploy infos
+
+https://www.pythonanywhere.com/user/lab43/files/home/lab43
+lab43 0(12345)12345
+
+lab43.pythonanywhere.com 
+
+# puxando alterações do git para o anywhere
+cd ~/seu_projeto
+git pull
+(na aba web, atualizar o projeto)
+
+# rodando localmente
+(com o menv ativado)
+uvicorn app.main:app --reload

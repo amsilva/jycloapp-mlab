@@ -198,13 +198,22 @@ async function deleteCycle(id) {
     }
 }
 
+function formatDurationHours(decimalHours) {
+    if (!decimalHours || Number(decimalHours) <= 0) return '00:00';
+    const totalMinutes = Math.round(Number(decimalHours) * 60);
+    const hrs = Math.floor(totalMinutes / 60);
+    const mins = totalMinutes % 60;
+    const pad = (n) => String(n).padStart(2, '0');
+    return `${pad(hrs)}:${pad(mins)}`;
+}
+
 // --- RENDERING ---
 function renderDashboard() {
     // 1. Render Stats
     statTotal.textContent = stats.total;
     statMonth.textContent = stats.total_mes;
     statYear.textContent = stats.total_ano;
-    statLongest.textContent = stats.longest_window > 0 ? `${stats.longest_window}h` : '0h';
+    statLongest.textContent = formatDurationHours(stats.longest_window);
     
     // 2. Render Heatmap
     renderHeatmap(cycles);
@@ -238,11 +247,7 @@ function formatCycleDuration(cycle) {
     }
 
     if (cycle.duracao_horas != null) {
-        const totalMinutes = Math.round(Number(cycle.duracao_horas) * 60);
-        const hrs = Math.floor(totalMinutes / 60);
-        const mins = totalMinutes % 60;
-        const pad = (n) => String(n).padStart(2, '0');
-        return `${pad(hrs)}:${pad(mins)}`;
+        return formatDurationHours(cycle.duracao_horas);
     }
 
     return '00:00';
