@@ -221,6 +221,33 @@ function renderDashboard() {
     renderCards();
 }
 
+function formatCycleDuration(cycle) {
+    if (cycle.status === 'ativo') {
+        return '00:00';
+    }
+
+    if (cycle.data_inicio && cycle.data_fim) {
+        const start = toUTCDate(cycle.data_inicio);
+        const end = toUTCDate(cycle.data_fim);
+        let diffMs = end.getTime() - start.getTime();
+        if (diffMs < 0) diffMs = 0;
+        const hrs = Math.floor(diffMs / 3600000);
+        const mins = Math.floor((diffMs % 3600000) / 60000);
+        const pad = (n) => String(n).padStart(2, '0');
+        return `${pad(hrs)}:${pad(mins)}`;
+    }
+
+    if (cycle.duracao_horas != null) {
+        const totalMinutes = Math.round(Number(cycle.duracao_horas) * 60);
+        const hrs = Math.floor(totalMinutes / 60);
+        const mins = totalMinutes % 60;
+        const pad = (n) => String(n).padStart(2, '0');
+        return `${pad(hrs)}:${pad(mins)}`;
+    }
+
+    return '00:00';
+}
+
 function renderCards() {
     cardsContainer.innerHTML = '';
     
@@ -243,9 +270,9 @@ function renderCards() {
         card.className = `cycle-card glass-panel ${cycle.status === 'ativo' ? 'active' : ''}`;
         
         const isAtivo = cycle.status === 'ativo';
-        const startDate = toUTCDate(cycle.data_inicio);
-        const formattedDate = startDate.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric' });
-        const formatTime = startDate.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+        const displayDate = (!isAtivo && cycle.data_fim) ? toUTCDate(cycle.data_fim) : toUTCDate(cycle.data_inicio);
+        const formattedDate = displayDate.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric' });
+        const formatTime = displayDate.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
 
         // Build Inner HTML
         let statusHtml = isAtivo 
@@ -267,7 +294,7 @@ function renderCards() {
             </div>
             <div class="card-main">
                 <div class="card-duration" id="duration-${cycle.id}" data-start="${cycle.data_inicio}" data-status="${cycle.status}">
-                    ${isAtivo ? '00:00' : `${cycle.duracao_horas}h`}
+                    ${formatCycleDuration(cycle)}
                 </div>
                 
                 <div class="card-details">
